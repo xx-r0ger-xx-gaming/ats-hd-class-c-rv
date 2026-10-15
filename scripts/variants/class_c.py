@@ -295,7 +295,9 @@ def build(cfg, collection, mats):
     ds = c.get("door_side", -1)
     yfw = 0.05                                   # coach front wall (cab back is at 0.07)
     y_ra = ti["rear_axle_y"]
-    z_ax = ti["ground_z"] + ti["tire_radius"]
+    r_rt = ti.get("rear_tire_radius", ti["tire_radius"])
+    z_ax = ti["ground_z"] + r_rt
+    r_arch = r_rt + 0.105                        # ~10 cm tyre-to-arch clearance (was a fixed 0.58)
     rb = 0.16
     dz = zc - 1.22                               # cabover features were laid out for cabover_bottom_z 1.22
     ry = yb + 3.98                               # rear-end features were laid out for rear_y -3.98
@@ -315,7 +317,7 @@ def build(cfg, collection, mats):
     lower_ob = lower.finish(collection, smooth=40, weighted=False)
     cut = Part(P + "_archcut", mats)
     for sgn in (-1, 1):
-        cylinder_x(cut, y_ra, z_ax, 0.58, sgn * 0.45, sgn * (hw + 0.3), "underbody", seg=28)
+        cylinder_x(cut, y_ra, z_ax, r_arch, sgn * 0.45, sgn * (hw + 0.3), "underbody", seg=28)
     cut_ob = cut.finish(collection, smooth=0, uv=False)
     boolean_apply(lower_ob, cut_ob)
     add_weighted_normals(lower_ob)
@@ -374,7 +376,7 @@ def build(cfg, collection, mats):
             for u0, u1, v1 in ((-1.50, -0.92, 0.48), (-0.72, -0.12, 0.48), (-3.86 + ry, -3.00 + ry, 0.48)):
                 hatch(d, pl, u0, u1, zs + 0.18, v1)
         # wheel arch trim
-        arc_band_x(d, y_ra, z_ax, 0.575, 0.62, 12, 168, s * (hw - 0.01), s * (hw + 0.018), "trim", seg=16)
+        arc_band_x(d, y_ra, z_ax, r_arch - 0.005, r_arch + 0.04, 12, 168, s * (hw - 0.01), s * (hw + 0.018), "trim", seg=16)
         # side marker lamps (amber front, red rear), roof-edge drip rail
         slab(d, pl, rounded_rect(-0.10, 0.0, zs + 0.24, zs + 0.29, 0.015, 1), 0.0, 0.02, "lamp_amber")
         slab(d, pl, rounded_rect(yb + 0.18, yb + 0.28, zs + 0.24, zs + 0.29, 0.015, 1), 0.0, 0.02,

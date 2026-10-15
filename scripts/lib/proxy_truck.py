@@ -1108,6 +1108,10 @@ HD_CHASSIS_DEFAULTS = {
     "frame_top_z": 0.80,
     "frame_hw": 0.43,
     "dual_rear_wheels": True,
+    # rear duals reshaped from the extracted 245/75R17-class pair (0.796 m, sidewalls touching):
+    # 235/80R17-class tyre on the same 17 in wheel, duals 0.275 m centre to centre (~3 cm sidewall gap)
+    "rear_tire_diameter": 0.81,
+    "rear_dual_spacing": 0.275,
     # used to locate the front axle, then removed with the other wheel parts (DRW wheels replace them)
     "front_tire_objects": ["Object_87", "Object_88", "Object_93", "Object_94", "Object_95", "Object_96"],
     # grille oval (chrome ring + script, blue fill; the fill object also holds the tailgate oval),
@@ -1167,6 +1171,66 @@ def _remove_object(ob):
     bpy.data.objects.remove(ob)
     if me is not None and me.users == 0:
         bpy.data.meshes.remove(me)
+
+
+def _reshape_rear_duals(ob, tire_dia, spacing):
+    """Rear dual assembly (local frame: tyre centre at the origin, x across, both tyres in one mesh).
+    The extracted duals are 245/75R17-class tyres whose sidewalls touch at x = 0. Grow the tyre
+    radially from the bead to tire_dia (the 17 in wheel and the bead stay as they are) and move the
+    two wheels apart to `spacing` centre to centre: tyre faces move rigidly by their side of x = 0,
+    rim/hub vertices beyond |x| 0.02 too, with a linear ramp inside it where the wheel discs bolt
+    together. Updates ob["tire_diameter"] and ob["width"]."""
+    import numpy as np
+
+    from lib.common import PipelineError
+    me = ob.data
+    n = len(me.vertices)
+    co = np.empty(n * 3)
+    me.vertices.foreach_get("co", co)
+    co = co.reshape(-1, 3)
+    nf = len(me.polygons)
+    mi = np.empty(nf, dtype=np.int32)
+    me.polygons.foreach_get("material_index", mi)
+    lt = np.empty(nf, dtype=np.int32)
+    me.polygons.foreach_get("loop_total", lt)
+    lv = np.empty(len(me.loops), dtype=np.int32)
+    me.loops.foreach_get("vertex_index", lv)
+    names = [_base_name(m) for m in me.materials]
+    if "hdw_tire" not in names:
+        raise PipelineError(f"{ob.name}: no hdw_tire material")
+    face_tire = mi == names.index("hdw_tire")
+    loop_face = np.repeat(np.arange(nf), lt)
+    tire_v = np.zeros(n, bool)
+    tire_v[lv[face_tire[loop_face]]] = True
+    # side of each tyre vertex from its faces' centroids (the two tyres touch at x = 0)
+    fcx = np.bincount(loop_face, weights=co[lv, 0], minlength=nf) / lt
+    vside = np.zeros(n)
+    vside[lv[face_tire[loop_face]]] = np.sign(fcx[loop_face][face_tire[loop_face]])
+    vside[vside == 0] = 1.0
+    r = np.hypot(co[:, 1], co[:, 2])
+    r_bead, r_out = r[tire_v].min(), r[tire_v].max()
+    width0 = co[tire_v, 0].max() - co[tire_v, 0].min()
+    if not (0.15 < r_bead < r_out < 0.5 and 0.3 < width0 < 0.7):
+        raise PipelineError(f"{ob.name}: unexpected dual tyre geometry (bead r {r_bead:.3f}, "
+                            f"outer r {r_out:.3f}, width {width0:.3f})")
+    # radial: bead fixed, tread to the new radius
+    R = tire_dia / 2
+    rt = r[tire_v]
+    k = (r_bead + (rt - r_bead) * (R - r_bead) / (r_out - r_bead)) / np.maximum(rt, 1e-9)
+    co[tire_v, 1] *= k
+    co[tire_v, 2] *= k
+    # lateral: each wheel moves out by d
+    d = (spacing - width0 / 2) / 2
+    if d < 0:
+        raise PipelineError(f"{ob.name}: dual spacing {spacing} is less than the tyre width {width0 / 2:.3f}")
+    co[tire_v, 0] += d * vside[tire_v]
+    other = ~tire_v
+    co[other, 0] += d * np.clip(co[other, 0] / 0.02, -1.0, 1.0)
+    me.vertices.foreach_set("co", co.ravel())
+    me.update()
+    ob["tire_diameter"] = 2 * R
+    ob["width"] = width0 + 2 * d
+    return r_out * 2, width0
 
 
 def build_hd_chassis_reference(spec, mats, collection):
@@ -1256,6 +1320,10 @@ def build_hd_chassis_reference(spec, mats, collection):
     if sorted(o.get("axle", "") for o in wheels) != ["front", "front", "rear", "rear"]:
         raise PipelineError(f"{wpath.name}: expected 2 front + 2 rear wheel assemblies")
     y_ra = y_fa - wb
+    rear_old = None
+    for ob in wheels:
+        if ob["axle"] == "rear" and s.get("rear_tire_diameter"):
+            rear_old = _reshape_rear_duals(ob, s["rear_tire_diameter"], s["rear_dual_spacing"])
     for ob in wheels:
         collection.objects.link(ob)
         yy = y_fa if ob["axle"] == "front" else y_ra
@@ -1268,11 +1336,12 @@ def build_hd_chassis_reference(spec, mats, collection):
     front = next(o for o in wheels if o["axle"] == "front")
     rear = next(o for o in wheels if o["axle"] == "rear")
     tire_r = front["tire_diameter"] / 2
+    rear_r = rear["tire_diameter"] / 2
     track = 2 * abs(front["center_x"])
     rear_track = abs(rear["center_x"]) + rear["width"] / 2
 
     y_end = y_cut - s["frame_length_behind_cab"]
-    chassis = _rear_chassis(mats, collection, 0.0, y_cut, y_end, frame_top, fw, y_ra, tire_r,
+    chassis = _rear_chassis(mats, collection, 0.0, y_cut, y_end, frame_top, fw, y_ra, rear_r,
                             abs(rear["center_x"]), name="pv_hd_chassis")
 
     # ---- materials: shared body paint, render library for everything else
@@ -1306,7 +1375,12 @@ def build_hd_chassis_reference(spec, mats, collection):
         track=track, tire_radius=tire_r, spec=s,
         frame_top_z=0.0, frame_hw=fw, frame_end_y=y_end - oy, rear_track=rear_track, axle_z=tire_r - frame_top,
     )
+    info["rear_tire_radius"] = rear_r
+    info["rear_axle_z"] = rear_r - frame_top
     info["objects"] = objs
+    if rear_old:
+        print(f"[hd chassis] rear duals: tyre dia {rear_old[0]:.3f} -> {2 * rear_r:.3f}, pair width "
+              f"{rear_old[1]:.3f} -> {rear['width']:.3f} (spacing {s['rear_dual_spacing']:.3f} c-c)")
     print(f"[hd chassis] {path.name}: scale {k:.5f}, {faces} faces after cut, removed {len(gone)} objects + "
           f"{removed} badge faces; roof {roof:.3f}, cab back {cab_back:.3f}, front axle {y_fa:.3f} "
           f"(front axle to cab back {y_fa - cab_back:.3f}), wheelbase {wb:.2f}, tyre r {tire_r:.3f}, "
