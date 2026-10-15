@@ -1,6 +1,6 @@
 # Roadmap
 
-All items start unverified. This records intent, not completed implementation. Split from the camper repo's former "Phase 3 — F-150-cab-based Class C RV" on October 15, 2026. Shared feasibility work (ATS/Road Trip versions, def paths, paint mechanism, toolchain pins) lives in the camper repo's `docs/compatibility.md`; do not duplicate it here, link to it.
+All items start unverified. This records intent, not completed implementation. Split from the camper repo's former "Phase 3 — Class C RV" on October 15, 2026. Shared feasibility work (ATS/Road Trip versions, def paths, paint mechanism, toolchain pins) lives in the camper repo's `docs/compatibility.md`; do not duplicate it here, link to it. Open Class C gates live in [docs/compatibility.md](docs/compatibility.md).
 
 ## Phase 0 — Preview (done, render-only)
 

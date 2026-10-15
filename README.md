@@ -1,13 +1,14 @@
-# ATS Road Trip — F-150 Class C Motorhome
+# ATS Road Trip — Class C Motorhome on a Super Duty-Style Chassis Cab
 
-A compact Class C motorhome (cabover berth, rear habitation body, dual rear wheels) built on an F-150-style cab-chassis, for the Ford F-150 in American Truck Simulator - Road Trip: Ford. Split out of [ats-f150-camper](https://github.com/xx-r0ger-xx-gaming/ats-f150-camper) on October 15, 2026, because a Class C eventually needs its own chassis rather than a truck-bed accessory slot.
+A compact Class C motorhome (cabover berth, rear habitation body, dual rear wheels) built on a two-door, badge-free, Super Duty-style chassis cab. Target game: American Truck Simulator - Road Trip: Ford. Split out of [ats-f150-camper](https://github.com/xx-r0ger-xx-gaming/ats-f150-camper) on October 15, 2026, because a Class C eventually needs its own chassis rather than a truck-bed accessory slot.
 
-Start with [CLAUDE.md](CLAUDE.md), then [the roadmap](docs/roadmap.md).
+Start with [CLAUDE.md](CLAUDE.md), then [the roadmap](docs/roadmap.md). Open gates: [docs/compatibility.md](docs/compatibility.md).
 
 ## Status
 
 **Preview renders only.** Nothing here is exported, converted, packaged or tested in game, and a render is not proof that a mod works. Current state:
 
+- **Stand-in:** the current preview uses a crew-cab F-150 model as a stand-in until the Super Duty reference is in. It is not the final chassis.
 - The coach is original, render-only geometry (`scripts/variants/class_c.py`).
 - The base vehicle in the renders is a **reference cab-chassis**: the downloaded crew-cab pickup model (see Credits) cut 12 mm behind the cab, cut openings capped, plus a procedural C-channel frame, crossmembers, rear axle, springs and dual rear wheels copied from the model's own wheel. It is a render construct, **not a real chassis cab** and not a measured one. `wheelbase_cc` is 5.3 m so the rear overhang matches the procedural regular-cab layout.
 - **Open question: 2-door regular cab.** The intended look is a short 2-door cab, but Road Trip only ships the 4-door crew cab (cabin `pckup4d_55.ford.f150_23.cabin`, chassis `4d55_awd`). We cannot ship a cut-down or modified SCS model. In game this means either keeping the crew cab (long, but uses the installed vehicle) or building our own original cab and chassis (a much larger scope). Undecided; see the roadmap.
@@ -73,7 +74,7 @@ Create original geometry and textures. Do not commit, upload, or redistribute pr
 
 ## Disclaimer
 
-Unofficial fan-made mod. Not affiliated with, sponsored by, or endorsed by Ford Motor Company or SCS Software. Ford and F-150 are trademarks of Ford Motor Company; American Truck Simulator is a trademark of SCS Software. Names are used only to identify the vehicle this mod fits. No Ford or SCS logos, models, or game assets are included.
+Unofficial fan-made mod. Not affiliated with, sponsored by, or endorsed by Ford Motor Company or SCS Software. Ford, F-150 and Super Duty are trademarks of Ford Motor Company; American Truck Simulator is a trademark of SCS Software. Names are used only to identify the vehicle this mod fits. No Ford or SCS logos, models, or game assets are included.
 
 ## Credits
 

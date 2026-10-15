@@ -1,7 +1,7 @@
 {
   "_comment": "Compact Class C motorhome on the regular-cab cab-chassis proxy (render-only). Coach geometry in scripts/variants/class_c.py; all dimensions metres in the cab_chassis variant frame (origin = frame top, 7 cm behind the cab back).",
   "name": "class_c",
-  "title": "F-150 based Class C motorhome",
+  "title": "Class C motorhome on a Super Duty-style chassis cab (F-150 crew-cab stand-in in preview)",
   "camper": {
     "module": "class_c",
     "half_width": 1.25,

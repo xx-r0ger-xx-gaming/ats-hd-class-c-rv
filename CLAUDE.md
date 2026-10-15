@@ -8,7 +8,7 @@ local-reference/f150-camper-concept.png
 
 The private concept image (gitignored, contains third-party logos; copy it in by hand, same file as in the camper repo) shows the compact truck-based Class C camper with interior/rear views. It is inspiration, not measured geometry, and is never packaged into the mod.
 
-Read README.md and docs/roadmap.md before implementation. The task is an F-150-cab-based Class C motorhome for ATS Road Trip: Ford, split out of the bed-accessory repo `ats-f150-camper` (sibling folder) because it needs its own chassis. Treat it as a separate major scope from the camper's V1 shell.
+Read README.md and docs/roadmap.md before implementation. The task is a Class C motorhome on a two-door, badge-free, Super Duty-style chassis cab for ATS Road Trip: Ford (the current preview uses an F-150 crew-cab stand-in), split out of the bed-accessory repo `ats-f150-camper` (sibling folder) because it needs its own chassis. Treat it as a separate major scope from the camper's V1 shell. Open Class C gates: `docs/compatibility.md`.
 
 ## Current state
 
