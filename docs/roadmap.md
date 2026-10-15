@@ -9,12 +9,19 @@ All items start unverified. This records intent, not completed implementation. S
 - [x] Standalone render pipeline (copied libraries, tools path resolved to the sibling camper repo).
 - Known issue: Eevee glass and interior brightness/sorting artifacts; Cycles is the reference look.
 
+## Target vehicle (Rob, 2026-10-15)
+
+- **Chassis:** a 2-door regular-cab Super Duty-style chassis cab (F-350/F-450 class) with dual rear wheels, badge-free. Not the half-ton F-150 crew cab the current preview uses.
+- **Renders:** swap the reference cab-chassis for a CC-BY or CC0 Sketchfab model of such a chassis cab if one turns up (credit it in the README, keep it in the tools folder, never commit or package it; debadge it like the current reference).
+- **Game:** build ORIGINAL geometry from Ford's public Body Builders Layout Book dimensions (wheelbase, cab-to-axle, frame height and width, cab envelope). A lookalike, not a replica: alter the grille and lights, no Ford badges, names or logos, no SCS or Ford model data.
+- **Open gate (gaming PC):** can a mod add a new Road Trip *car* (`def/vehicle/car/...`, dealer `vehicle : .car` entries), or would this have to be a mod *truck* def (`def/vehicle/truck/...`), losing Road Trip car features (car dealer, car interior/camera behaviour, Road Trip-specific systems)? Verify by extracting the Road Trip defs and checking whether the car dealer, vehicle lists and car physics accept a third-party car unit, then load a tiny original test car; compare with an existing community car or truck mod. Record the answer here and in the camper repo's docs/compatibility.md.
+
 ## Phase 1 — Cab decision (blocking)
 
 Road Trip ships only the 4-door crew cab (cabin `pckup4d_55.ford.f150_23.cabin`, chassis `4d55_awd.ford.f150_23.chassis`; OBSERVED-IN-MODS, see the camper repo). A Class C is normally a 2-door regular cab, but we cannot ship a cut-down or modified SCS model.
 
 - [ ] Option A: keep the installed crew cab and design the coach around it (longer vehicle, reuses the game's cab, interior and controls if a chassis swap can reference them).
-- [ ] Option B: build an original 2-door cab and chassis (all-new exterior, likely a new interior, far larger scope; no SCS geometry).
+- [ ] Option B (Rob's target, see above): build an original 2-door regular-cab Super Duty-style chassis cab from the Body Builders Layout Book dimensions (all-new exterior, likely a new interior, far larger scope; no SCS geometry). Depends on the car-vs-truck gate.
 - [ ] Record the decision and its consequences here before modeling further. Re-render the preview on the chosen cab.
 
 ## Phase 2 — Chassis feasibility (gaming PC)
