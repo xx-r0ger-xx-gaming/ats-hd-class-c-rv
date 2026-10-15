@@ -1,0 +1,80 @@
+{
+  "_comment": "Render-only settings shared by render_preview.py and render_variants.py. Nothing here affects exported game data.",
+  "hdri": {
+    "_comment": "Poly Haven 'Qwantani Late Afternoon' (CC0), 4k Radiance HDR; fetched by scripts/fetch_tools.ps1 into tools/hdri (gitignored). The sun disk is clamped to sun_clamp and replaced by a sun lamp along the HDRI sun direction carrying the clamped-away irradiance (x sun_scale). sun_azimuth_deg places the sun around the vehicle (0 = ahead/+Y, 90 = right/+X, 180 = behind); views may override it.",
+    "file": "tools/hdri/qwantani_late_afternoon_4k.hdr",
+    "source": "https://polyhaven.com/a/qwantani_late_afternoon",
+    "license": "CC0",
+    "strength": 1.0,
+    "sun_clamp": 20.0,
+    "sun_scale": 1.4,
+    "sun_angle_deg": 1.2,
+    "sun_azimuth_deg": 245.0
+  },
+  "ground": {
+    "_comment": "Two-lane road along Y; the vehicle sits in the right-hand lane centred on x = 0. Ground fades to transparent (HDRI horizon) between fade_start..fade_end m.",
+    "road_center_x": -1.8,
+    "road_half_width": 3.9,
+    "road_length": 600.0,
+    "disk_radius": 320.0,
+    "fade_start": 90.0,
+    "fade_end": 300.0,
+    "road_fade_start": 250.0,
+    "road_fade_end": 560.0,
+    "dash_range": 300.0,
+    "dash_phase": 1.0
+  },
+  "profiles": {
+    "surface": {
+      "_comment": "Fast Surface Pro preview: Eevee, 32 TAA samples, soft shadows, GTAO, SSR, bloom.",
+      "engine": "BLENDER_EEVEE",
+      "resolution": [1280, 720],
+      "samples": 32,
+      "bloom": true,
+      "view_transform": "Filmic",
+      "look": "Medium High Contrast",
+      "exposure": 0.0
+    },
+    "surface-photo": {
+      "_comment": "Photoreal Surface Pro render: Cycles CPU, adaptive sampling, OpenImageDenoise, Filmic High Contrast, slight DOF (view fstop). Target < 4 min per 1280x720 view on an i7-1185G7.",
+      "engine": "CYCLES",
+      "device": "CPU",
+      "resolution": [1280, 720],
+      "samples": 192,
+      "adaptive": true,
+      "adaptive_threshold": 0.02,
+      "adaptive_min_samples": 16,
+      "denoise": true,
+      "max_bounces": 8,
+      "diffuse_bounces": 3,
+      "glossy_bounces": 4,
+      "filter_glossy": 0.5,
+      "clamp_indirect": 10.0,
+      "view_transform": "Filmic",
+      "look": "High Contrast",
+      "exposure": -0.3,
+      "dof": true,
+      "post": {"vignette": 0.22, "dispersion": 0.006, "glare_threshold": 1.5, "glare_mix": -0.85}
+    },
+    "gaming": {
+      "_comment": "Gaming PC: Cycles GPU, 1080p, 256 samples (device must be enabled in Blender preferences there).",
+      "engine": "CYCLES",
+      "device": "GPU",
+      "resolution": [1920, 1080],
+      "samples": 256,
+      "adaptive": true,
+      "adaptive_threshold": 0.01,
+      "denoise": true,
+      "view_transform": "Filmic",
+      "look": "Medium High Contrast",
+      "dof": true
+    }
+  },
+  "views": {
+    "_comment": "Auto-framed cameras (lib/environment.place_camera): azimuth_deg 0 = in front, 90 = right, 180 = behind, 270 = left; height/target_height in m above ground; margin = empty border fraction; fstop used only when the profile has dof.",
+    "rear34": {"azimuth_deg": 222, "height": 1.45, "lens": 45, "target_height": 1.05, "margin": 0.07, "fstop": 5.6, "sun_azimuth_deg": 248},
+    "_side_comment": "Side: camera 9 deg forward of square (a sliver of the shaded nose shows) with the sun low behind-left (205) raking along the flank; a sun behind the camera (old 252) flattened the paint and turned dark glass/graphics mid-grey.",
+    "side": {"azimuth_deg": 279, "height": 1.25, "lens": 60, "target_height": 1.0, "margin": 0.06, "fstop": 8.0, "sun_azimuth_deg": 205},
+    "front34": {"azimuth_deg": 318, "height": 1.35, "lens": 45, "target_height": 1.0, "margin": 0.07, "fstop": 5.6, "sun_azimuth_deg": 292}
+  }
+}

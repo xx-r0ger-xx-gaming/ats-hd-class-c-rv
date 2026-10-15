@@ -1,0 +1,22 @@
+{
+  "_comment": "Render-only paint shared by the Class C variant configs. Keep in sync with the camper repo by hand if its silver changes.",
+  "materials": {
+    "shell_paint": {
+      "_comment": "Shared render body paint copied from ats-f150-camper config/v1.json materials.shell_paint ('Iconic Silver'-like metallic silver, approximation, not a factory colour code). Used via \"paint\": \"config/paint.json#materials.shell_paint\" for the cab-chassis and colour-matched trim. Render-only.",
+      "base_color": [
+        0.4,
+        0.41,
+        0.42,
+        1.0
+      ],
+      "metallic": 0.9,
+      "roughness": 0.36,
+      "clearcoat": 1.0,
+      "clearcoat_roughness": 0.03,
+      "flake": 0.6,
+      "dirt": 0.15,
+      "render_roughness": 0.17,
+      "role": "body_paint"
+    }
+  }
+}

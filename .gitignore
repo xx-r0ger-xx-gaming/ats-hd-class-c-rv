@@ -1,0 +1,28 @@
+# Private references and extracted game data - never commit
+local-reference/
+**/extracted/
+*.scs.extracted/
+
+# Machine-specific configuration
+config/tools.local.json
+
+# Tool binaries, HDRI, reference truck (or a directory junction to the camper repo's tools/)
+tools/
+
+# Generated output
+build/
+dist/
+logs/
+renders/*
+!renders/.gitkeep
+
+# Blender autosave / backups
+*.blend1
+*.blend2
+__pycache__/
+*.pyc
+
+# OS cruft
+Thumbs.db
+.DS_Store
+desktop.ini

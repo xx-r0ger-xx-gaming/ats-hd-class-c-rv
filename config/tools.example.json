@@ -1,0 +1,4 @@
+{
+  "_comment": "Optional. Copy to config/tools.local.json (gitignored). tools_dir is where portable Blender, the HDRI and the reference truck live; relative paths resolve from this repo's root. Default without this file: ./tools if it exists (e.g. a directory junction), else ../ats-f150-camper/tools. The ATS_TOOLS_DIR environment variable overrides both.",
+  "tools_dir": "../ats-f150-camper/tools"
+}
