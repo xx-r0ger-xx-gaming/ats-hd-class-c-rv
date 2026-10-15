@@ -885,10 +885,11 @@ def build_truck(spec, mats, collection=None):
     if collection is None:
         collection = bpy.data.collections.new(COLLECTION)
         bpy.context.scene.collection.children.link(collection)
-    if (spec or {}).get("source", "procedural") == "reference":
-        return build_reference_truck(spec, mats, collection)
-    if (spec or {}).get("source", "procedural") != "procedural":
-        raise ValueError(f"truck source must be procedural|reference, got {spec.get('source')}")
+    src = (spec or {}).get("source", "procedural")
+    if src == "hd_reference":
+        return build_hd_chassis_reference(spec, mats, collection)
+    if src != "procedural":
+        raise ValueError(f"truck source must be procedural|hd_reference, got {src}")
     s = make_spec(spec)
     g = Geo(s)
     mats.ground_z = -(s["rail_z"] if g.pickup else s["frame_top_z"])   # world z of the road (dirt)
@@ -969,46 +970,14 @@ def _grille_material(mats):
     return mat
 
 
-# ------------------------------------------------------------------ reference truck (downloaded model)
+# ------------------------------------------------------------------ HD chassis-cab reference (downloaded models)
 #
-# Opt-in truck source for preview renders: truck {"type": "pickup", "source": "reference"}.
-# A third-party CC BY 4.0 model (see README "Credits"), downloaded by hand into tools/ (gitignored).
-# Imported with Blender's glTF importer, debadged, repainted with mats["paint"], normalised into the
-# truck-local frame and MEASURED (bed floor, bed inner length/width, rail top, cab roof, axles) by
-# ray casts, so the returned TruckInfo is the same contract the procedural pickup provides.
-# Render-only: never exported, never packaged.
-
-REFERENCE_MODEL = "tools/reference-truck/2023_ford_f150_lihtning_platinum.glb"
-REFERENCE_DEFAULTS = {
-    "model": REFERENCE_MODEL,
-    "overall_length": 5.89,           # metres, bumper to bumper (model units are arbitrary)
-    # material-name suffixes on the model (the file merges meshes by material, so whole objects
-    # are not parts; we act per material and per face)
-    "paint_materials": ["Iced_Blue_Silver"],
-    "badge_materials": ["07___Default777", "logo2"],     # front oval, wheel-centre caps
-    "plate_materials": ["Philippine_License_Plate_Recovered"],
-    # every other model material is flat roughness-1 colour: map them all onto the render library
-    "material_map": {"Glass1": "glass_light", "Windows": "glass", "glasss_dark": "glass_flush",
-                     "Black1": "trim", "black": "trim", "BlackMetal": "frame", "BlackTrims1": "trim_gloss",
-                     "Callipers": "alloy_dark", "ChromeTrims": "alloy", "Iron_Clean_Distorted": "steel",
-                     "mirror": "chrome", "Orange": "lamp_amber", "Red_Light": "lamp_red_lens",
-                     "refl_black": "trim_gloss", "WhiteDRLs": "lamp_clear", "Tires": "tire"},
-    # glTF node holding the tailgate panel with the embossed model script: its vertices are pressed
-    # flat onto a least-squares surface fitted to the panel, which erases the raised letters
-    "flatten_objects": ["Object_154"],
-    # front oval ring left after the badge material is gone (truck-local metres, ground z = 0,
-    # x centred; y measured back from the front-most point)
-    "front_badge": {"half_x": 0.175, "z": [0.89, 1.10], "depth": 0.12,
-                    "materials": ["ChromeTrims", "BlackTrims1"]},
-    # extra badge/lettering faces removed by region (truck-local metres after normalisation, before
-    # the mount shift: x centred, ground z = 0, +Y forward, y = 0 at the bed front wall).
-    "badge_boxes": [],
-}
-
-
-def _mat_suffix(mat, suffixes):
-    return mat is not None and any(mat.name.endswith(s) for s in suffixes)
-
+# truck {"type": "cab_chassis", "source": "hd_reference"}: a 1999-2007-generation heavy-duty regular-cab
+# pickup (CC BY 4.0, see README "Credits") cut behind the cab, debadged, plates removed, repainted with
+# mats["paint"]; DRW wheel assemblies (front singles + rear duals) taken from a CC BY-SA 4.0 chassis-cab
+# box truck derived from the same model and saved to a small .blend by scripts/extract_hd_wheels.py;
+# procedural frame, rear axle and leaf springs. Both files live in tools/ (gitignored), never committed,
+# exported or packaged. Object names below are those of the glTF import of the exact Sketchfab download.
 
 def _import_reference(path, collection):
     from lib.common import PipelineError
@@ -1053,37 +1022,6 @@ def _ray(scene, dg, origin, direction, dist=20.0):
     return loc if hit else None
 
 
-def _flatten_panel(ob):
-    """Press a gently curved panel's vertices onto its own least-squares quadric y(x, z) (two passes,
-    the second ignoring outliers such as raised lettering)."""
-    import numpy as np
-    n = len(ob.data.vertices)
-    co = np.empty(n * 3)
-    ob.data.vertices.foreach_get("co", co)
-    co = co.reshape(n, 3)
-    x, y, z = co[:, 0], co[:, 1], co[:, 2]
-    A = np.stack([np.ones(n), x, z, x * x, z * z, x * z], axis=1)
-    keep = np.ones(n, bool)
-    for _ in range(3):
-        coef, *_ = np.linalg.lstsq(A[keep], y[keep], rcond=None)
-        res = y - A @ coef
-        keep = np.abs(res) < max(np.percentile(np.abs(res), 60), 1e-6) * 1.5
-    co[:, 1] = A @ coef
-    ob.data.vertices.foreach_set("co", co.ravel())
-    ob.data.update()
-    # exact surface normals (the flattened letters would otherwise still shade through)
-    dydx = coef[1] + 2 * coef[3] * x + coef[5] * z
-    dydz = coef[2] + 2 * coef[4] * z + coef[5] * x
-    nrm = np.stack([-dydx, np.ones(n), -dydz], axis=1)
-    nrm /= np.linalg.norm(nrm, axis=1)[:, None]
-    me = ob.data
-    for p in me.polygons:
-        p.use_smooth = True
-    me.use_auto_smooth = True
-    me.normals_split_custom_set_from_vertices([tuple(v) for v in nrm])
-    ob["keep_custom_normals"] = True
-
-
 def _delete_faces(ob, pred):
     """Delete faces whose material index / centre match pred(face_material, centre)."""
     bm = bmesh.new()
@@ -1096,190 +1034,6 @@ def _delete_faces(ob, pred):
         bm.to_mesh(ob.data)
     bm.free()
     return len(dead)
-
-
-def build_reference_truck(spec, mats, collection):
-    """Import + normalise + measure the reference pickup. Returns TruckInfo (variant frame)."""
-    from mathutils import Matrix
-
-    from lib.common import PipelineError, repo_path
-    s = dict(REFERENCE_DEFAULTS)
-    s.update({k: v for k, v in spec.items() if not k.startswith("_")})
-    s.setdefault("type", "pickup")
-    if s["type"] not in ("pickup", "cab_chassis"):
-        raise PipelineError(f"reference truck: type must be pickup|cab_chassis, got {s['type']}")
-    if s.get("tailgate", "closed") not in ("closed", "removed"):
-        raise PipelineError("reference truck: tailgate must be closed|removed")
-    s.setdefault("tailgate", "closed")
-    path = repo_path(s["model"])
-    if not path.is_file():
-        raise PipelineError(
-            f"reference truck model missing: {path}\n  Download '2023 Ford F150 Lihtning Platinum' (CC BY 4.0, "
-            f"https://skfb.ly/pFtDT) from Sketchfab as glTF binary (.glb) into <tools>/reference-truck/ "
-            f"(tools dir: see README 'Tools'), or use the procedural truck (--set truck.source=procedural).")
-    objs = _import_reference(path, collection)
-    for ob in objs:
-        if ob.name in s["flatten_objects"]:
-            _flatten_panel(ob)
-
-    # ---- normalise: centre x, front toward +Y (model front is at its -Y end), metres, ground z = 0
-    vs = _verts_world(objs)
-    lo = Vector(tuple(min(v[i] for v in vs) for i in range(3)))
-    hi = Vector(tuple(max(v[i] for v in vs) for i in range(3)))
-    k = s["overall_length"] / (hi.y - lo.y)
-    cx = (lo.x + hi.x) / 2
-    M = (Matrix.Scale(k, 4) @ Matrix.Rotation(math.pi, 4, "Z")
-         @ Matrix.Translation((-cx, -(lo.y + hi.y) / 2, -lo.z)))
-    for ob in objs:
-        ob.data.transform(M)
-        ob.data.update()
-
-    # ---- debadge: badge materials, the front oval ring, licence-plate artwork (material swap below)
-    removed = 0
-    fb = s["front_badge"]
-    # plain centre caps replace the wheel-centre logos (same place and size, no emblem)
-    logo = _verts_world(objs, lambda o: any(_mat_suffix(m.material, ["logo2"]) for m in o.material_slots))
-    caps = Part("pv_ref_center_caps", mats)
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            cl = [v for v in logo if v.x * sx > 0.3 and v.y * sy > 0.3]
-            if len(cl) < 8:
-                continue
-            cy = (min(v.y for v in cl) + max(v.y for v in cl)) / 2
-            cz = (min(v.z for v in cl) + max(v.z for v in cl)) / 2
-            r = (max(v.z for v in cl) - min(v.z for v in cl)) / 2
-            xo = max(abs(v.x) for v in cl)
-            cylinder_x(caps, cy, cz, r * 0.98, sx * (xo - 0.03), sx * (xo - 0.002), "alloy_dark", seg=24)
-    if caps.bm.verts:
-        objs.append(caps.finish(collection, smooth=40))
-    ytip = max(v.y for v in _verts_world(objs))
-    for ob in objs:
-        removed += _delete_faces(ob, lambda m, c: _mat_suffix(m, s["badge_materials"]) or (
-            abs(c.x) < fb["half_x"] and fb["z"][0] < c.z < fb["z"][1] and c.y > ytip - fb["depth"]
-            and _mat_suffix(m, fb["materials"])))
-    # badge-delete bar: a plain satin-black slat across the grille centre hides the oval recess
-    bar = Part("pv_ref_badge_delete", mats)
-    zc = (fb["z"][0] + fb["z"][1]) / 2
-    box(bar, (-fb["half_x"], ytip - 0.10, zc - 0.078), (fb["half_x"], ytip - 0.046, zc + 0.078), "trim_gloss",
-        bev=0.012)
-    objs.append(bar.finish(collection, smooth=40))
-    keep = []
-    for ob in objs:
-        if len(ob.data.polygons) == 0:
-            me = ob.data
-            bpy.data.objects.remove(ob)
-            bpy.data.meshes.remove(me)
-        else:
-            keep.append(ob)
-    objs = keep
-
-    # ---- measure (ray casts on the normalised model, before the mount shift)
-    bpy.context.view_layer.update()
-    scene = bpy.context.scene
-    dg = bpy.context.evaluated_depsgraph_get()
-    rot = _verts_world(objs, lambda o: any(_mat_suffix(m.material, ["Iron_Clean_Distorted"]) for m in o.material_slots))
-    if not rot:
-        raise PipelineError("reference truck: brake discs (axle locator) not found")
-    ymid = sum(v.y for v in rot) / len(rot)
-    axles = []
-    for side in (lambda v: v.y < ymid, lambda v: v.y >= ymid):
-        c = [v for v in rot if side(v)]
-        axles.append(((min(v.y for v in c) + max(v.y for v in c)) / 2, (min(v.z for v in c) + max(v.z for v in c)) / 2))
-    (y_ra, z_ax), (y_fa, _) = axles
-    tires = _verts_world(objs, lambda o: any(_mat_suffix(m.material, ["Tires"]) for m in o.material_slots))
-    rear_t = [v for v in tires if abs(v.y - y_ra) < 0.6]
-    tire_r = (max(v.z for v in rear_t) - min(v.z for v in rear_t)) / 2
-    xs_r = [v.x for v in rear_t if v.x > 0]
-    track = (max(xs_r) + min(xs_r)) if xs_r else 1.70
-
-    def down(x, y):
-        h = _ray(scene, dg, (x, y, 5.0), (0, 0, -1))
-        return h.z if h is not None else 0.0
-
-    zf0 = down(0.0, y_ra)
-    step = 0.01
-    yb_f = y_ra
-    while down(0.0, yb_f + step) < zf0 + 0.08:
-        yb_f += step
-    yb_r = y_ra
-    while down(0.0, yb_r - step) < zf0 + 0.08:
-        yb_r -= step
-    floor = sorted(down(0.0, yb_r + (yb_f - yb_r) * i / 20) for i in range(1, 20))[10]
-    yw = yb_f - 0.15
-    h = _ray(scene, dg, (0.0, yw, floor + 0.25), (1, 0, 0))
-    hl = _ray(scene, dg, (0.0, yw, floor + 0.25), (-1, 0, 0))
-    if h is None or hl is None:
-        raise PipelineError("reference truck: bed side walls not found")
-    inner_hw = (h.x - hl.x) / 2
-    xc = (h.x + hl.x) / 2
-    ys = yb_f - 0.35
-    prof = [(x / 1000, down(xc + x / 1000, ys)) for x in range(int(inner_hw * 1000) - 10, int(inner_hw * 1000) + 300, 4)]
-    rail = max(z for _, z in prof)
-    outer = max(x for x, z in prof if z > rail - 0.03)
-    roof = max(down(0.0, yb_f + 0.1 + 0.05 * i) for i in range(60))
-    hc = _ray(scene, dg, (0.0, yb_f - 0.3, rail + 0.15), (0, 1, 0))
-    cab_back = (hc.y - yb_f) if hc is not None else 0.07
-    ht = _ray(scene, dg, (0.0, yb_r - 2.0, rail - 0.12), (0, 1, 0))
-    tail_out = ht.y if ht is not None else yb_r - 0.06
-
-    # ---- optional: remove the tailgate (faces of the gate box behind the bed floor)
-    if s["tailgate"] == "removed":
-        for ob in objs:
-            removed += _delete_faces(ob, lambda m, c: (abs(c.x - xc) < inner_hw + 0.02 and tail_out - 0.02 < c.y < yb_r + 0.005
-                                                       and floor + 0.025 < c.z < rail + 0.05))
-    for bx in s.get("badge_boxes", []):
-        lo_b, hi_b = Vector(bx[0]), Vector(bx[1])
-        for ob in objs:
-            removed += _delete_faces(ob, lambda m, c: all(lo_b[i] + (yb_f if i == 1 else 0) <= c[i] <= hi_b[i] + (yb_f if i == 1 else 0)
-                                                          for i in range(3)))
-
-    if s["type"] == "cab_chassis":
-        return _finish_reference_cab_chassis(s, mats, collection, objs, path, k, removed, scene, dg, xc, yb_f,
-                                             rail, roof, y_fa, y_ra, z_ax, tire_r, track)
-
-    # ---- shift: y = 0 at the bed front wall (inner face), mount = rail top
-    mount_z = rail
-    shift = Matrix.Translation((-xc, -yb_f, 0.0))
-    for ob in objs:
-        ob.data.transform(shift)
-        ob.location.z -= mount_z
-    mats.ground_z = -mount_z
-
-    _reference_materials(s, mats, objs)
-    info = TruckInfo(
-        type="pickup", source="reference", mount_local=[0.0, 0.0, mount_z], ground_z=-mount_z,
-        roof_z=roof - mount_z, cab_back_y=cab_back, front_y=max(v.y for v in _verts_world(objs)),
-        front_axle_y=y_fa - yb_f, rear_axle_y=y_ra - yb_f, wheelbase=y_fa - y_ra, body_hw=outer + 0.03,
-        track=track, tire_radius=tire_r, spec=s,
-        rail_z=0.0, bed_length=yb_f - tail_out, bed_inner_hw=inner_hw, rail_outer_hw=outer,
-        tailgate_y=tail_out - yb_f, tailgate=s["tailgate"], bed_floor_z=floor - mount_z,
-        bed_inner_rear_y=yb_r - yb_f, axle_z=z_ax - mount_z,
-    )
-    info["objects"] = objs
-    print(f"[reference truck] {path.name}: scale {k:.5f}, {sum(len(o.data.polygons) for o in objs)} faces, "
-          f"removed {removed} badge/gate faces; bed floor {floor:.3f} rail {rail:.3f} roof {roof:.3f} "
-          f"bed {yb_f - yb_r:.3f} (inner) x {2 * inner_hw:.3f}, rail outer hw {outer:.3f}, "
-          f"axles f {y_fa - yb_f:.3f} r {y_ra - yb_f:.3f}, tire r {tire_r:.3f}, cab back {cab_back:.3f}")
-    return info
-
-
-def _reference_materials(s, mats, objs):
-    """Shared paint, library glass/trim/lamps, blank plates on the imported model."""
-    for ob in objs:
-        for slot in ob.material_slots:
-            m = slot.material
-            if m is None or m.get("render_role"):
-                continue
-            if _mat_suffix(m, s["paint_materials"]):
-                slot.material = mats["paint"]
-            elif _mat_suffix(m, s["plate_materials"]):
-                slot.material = mats["plate"]
-            else:
-                for suf, key in s["material_map"].items():
-                    if m.name.endswith("_" + suf):
-                        slot.material = mats[key]
-        for p in ob.data.polygons:
-            p.use_smooth = True
 
 
 def _cut_behind(ob, y_cut):
@@ -1304,110 +1058,12 @@ def _cut_behind(ob, y_cut):
     return n
 
 
-def _extract_faces(objs, pred, name, collection):
-    """Copy faces matching pred(centre) from every object into one new object (materials kept)."""
-    bm_out = bmesh.new()
-    mats_out = []
-    for ob in objs:
-        me = ob.data
-        sel = [p for p in me.polygons if pred(p.center)]
-        if not sel:
-            continue
-        bm = bmesh.new()
-        bm.from_mesh(me)
-        bm.faces.ensure_lookup_table()
-        keep = {p.index for p in sel}
-        bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.index not in keep], context="FACES")
-        remap = []
-        for slot in ob.material_slots:
-            if slot.material not in mats_out:
-                mats_out.append(slot.material)
-            remap.append(mats_out.index(slot.material))
-        for f in bm.faces:
-            f.material_index = remap[f.material_index] if f.material_index < len(remap) else 0
-        tmp = bpy.data.meshes.new("_tmp")
-        bm.to_mesh(tmp)
-        bm.free()
-        bm_out.from_mesh(tmp)
-        bpy.data.meshes.remove(tmp)
-    me = bpy.data.meshes.new(name)
-    bm_out.to_mesh(me)
-    bm_out.free()
-    for m in mats_out:
-        me.materials.append(m)
-    ob = bpy.data.objects.new(name, me)
-    collection.objects.link(ob)
-    return ob
-
-
-def _finish_reference_cab_chassis(s, mats, collection, objs, path, k, removed, scene, dg, xc, yb_f, rail,
-                                  roof, y_fa, y_ra, z_ax, tire_r, track):
-    """Reference cab-chassis: the model cut just behind the cab, procedural frame, rear axle and
-    dual rear wheels (copies of the model's own rear wheel) at spec wheelbase."""
-    from mathutils import Matrix
-
-    from lib.common import PipelineError
-    wb = s.get("wheelbase_cc") or s.get("cab_chassis_wheelbase") or 4.30
-    frame_len = s.get("frame_length_behind_cab", 3.30)
-    frame_top = s.get("frame_top_z") or 0.80
-    fw = s.get("frame_hw", 0.56)
-    dual = s.get("dual_rear_wheels", False)
-
-    # cab back: most rearward cab point over a grid above the bed rails (the bed wall hides below)
-    hits = []
-    for ix in range(-8, 9):
-        for iz in range(1, 9):
-            z = rail + 0.03 + (roof - 0.06 - rail - 0.03) * iz / 8
-            h = _ray(scene, dg, (xc + ix * 0.09, yb_f - 1.0, z), (0, 1, 0), dist=3.0)
-            if h is not None and h.y > yb_f + 0.02:
-                hits.append(h.y)
-    if not hits:
-        raise PipelineError("reference cab_chassis: cab back not found")
-    cab_back = min(hits)
-    y_cut = cab_back - 0.012
-
-    # rear wheel template (tyre, rim, brake, centre cap) before the cut
-    def in_wheel(c, sx):
-        return (sx * (c.x - xc) > track / 2 - 0.30 and (Vector((c.y - y_ra, c.z - z_ax))).length < tire_r + 0.012)
-    templ = [_extract_faces(objs, lambda c, sx=sx: in_wheel(c, sx), f"pv_ref_rear_wheel_{'lr'[sx > 0]}", collection)
-             for sx in (-1, 1)]
-
-    faces = 0
-    keep = []
-    for ob in objs:
-        faces += _cut_behind(ob, y_cut)
-        if len(ob.data.polygons):
-            keep.append(ob)
-        else:
-            me = ob.data
-            bpy.data.objects.remove(ob)
-            bpy.data.meshes.remove(me)
-    objs = keep
-
-    # new rear axle at the spec wheelbase; duals = two copies of the model's wheel per side
-    y_new = y_fa - wb
-    wheels = []
-    for sx, t in zip((-1, 1), templ):
-        xs = [v.co.x for v in t.data.vertices]
-        wc = (min(xs) + max(xs)) / 2 - xc
-        ww = max(xs) - min(xs)
-        offs = [(sx * (track / 2 + 0.16) - wc, "o"), (sx * (track / 2 + 0.16 - ww - 0.03) - wc, "i")] if dual \
-            else [(0.0, "o")]
-        for i, (dx, tag) in enumerate(offs):
-            ob = t if i == len(offs) - 1 else bpy.data.objects.new(t.name + "_" + tag, t.data.copy())
-            if ob is not t:
-                collection.objects.link(ob)
-            ob.data.transform(Matrix.Translation((dx, y_new - y_ra, 0.0)))
-            wheels.append(ob)
-    objs += wheels
-    rear_track = (track / 2 + 0.16 + 0.14) if dual else track / 2 + 0.14
-
-    # procedural frame (C-channel rails, crossmembers), rear axle, diff, springs, shocks
-    p = Part("pv_ref_chassis", mats)
+def _rear_chassis(mats, collection, x0, y_cut, y_end, frame_top, fw, y_new, z_ax, hw_axle, name="pv_hd_chassis"):
+    """Procedural frame behind a cut cab: C-channel rails + crossmembers from y_end to just under the
+    cab, rear axle housing, diff, leaf springs, shocks, driveshaft, fuel tank and exhaust. Model-local coordinates (ground z = 0, +Y forward, rails centred on x0)."""
+    p = Part(name, mats)
     fh = 0.22
-    y_end = y_cut - frame_len
     y_front = y_cut + 0.25                                   # rails run on under the cab (hidden)
-    x0 = xc
     for sgn in (-1, 1):
         xo, xi = x0 + sgn * fw, x0 + sgn * (fw - 0.008)
         box(p, (min(xo, xi), y_end, frame_top - fh), (max(xo, xi), y_front, frame_top), "frame")
@@ -1418,7 +1074,6 @@ def _finish_reference_cab_chassis(s, mats, collection, objs, path, k, removed, s
         yc = y_end + 0.03 + kx * (y_cut - 0.10 - y_end - 0.06) / 4
         box(p, (x0 - fw + 0.01, yc - 0.04, frame_top - fh + 0.04), (x0 + fw - 0.01, yc + 0.04, frame_top - 0.04), "frame")
     box(p, (x0 - fw - 0.01, y_end - 0.01, frame_top - fh), (x0 + fw + 0.01, y_end + 0.06, frame_top), "frame")
-    hw_axle = track / 2 + (0.16 if dual else 0.0)
     cylinder_x(p, y_new, z_ax, 0.055, x0 - hw_axle + 0.12, x0 + hw_axle - 0.12, "frame", seg=20)
     sph = bmesh.ops.create_uvsphere(p.bm, u_segments=20, v_segments=12, radius=0.15)
     for v in sph["verts"]:
@@ -1434,27 +1089,226 @@ def _finish_reference_cab_chassis(s, mats, collection, objs, path, k, removed, s
         box(p, (xs_ - 0.04, y_new - 0.05, z_ax - 0.06), (xs_ + 0.04, y_new + 0.05, frame_top - fh - 0.04), "frame")
         cylinder_x(p, y_new + 0.18, (z_ax + frame_top) / 2 - 0.05, 0.025, *sorted((xs_ - sgn * 0.09, xs_ - sgn * 0.05)),
                    "steel", seg=12)
-    # battery/under-floor pack between the rails ahead of the axle (the reference is an EV)
-    box(p, (x0 - fw + 0.08, y_new + 0.90, frame_top - fh - 0.16), (x0 + fw - 0.08, y_cut - 0.05, frame_top - fh + 0.02),
-        "underbody", bev=0.03)
-    objs.append(p.finish(collection, smooth=40))
+    # fuel tank between the rails behind the axle, exhaust along the right rail ending ahead of the duals
+    box(p, (x0 - fw + 0.10, y_end + 0.35, frame_top - fh - 0.24), (x0 + fw - 0.10, y_new - 0.75, frame_top - fh + 0.02),
+        "underbody", bev=0.04)
+    xe = x0 + fw - 0.12
+    cylinder_y(p, xe, frame_top - fh - 0.08, 0.04, y_new + 0.85, y_cut + 0.30, "steel", seg=14)
+    cylinder_x(p, y_new + 0.85, frame_top - fh - 0.08, 0.04, xe - 0.02, x0 + fw + 0.10, "steel", seg=14)
+    return p.finish(collection, smooth=40)
 
-    # ---- shift: origin = frame top, centred, 7 cm behind the cab back (procedural cab_chassis frame)
+
+HD_CHASSIS_DIR = "tools/reference-hd-chassis"
+HD_CHASSIS_DEFAULTS = {
+    "model": HD_CHASSIS_DIR + "/hd_regular_cab_pickup.glb",
+    "wheels": HD_CHASSIS_DIR + "/hd_drw_wheels.blend",
+    "overall_length": 5.74,           # pickup bumper to bumper (the model is ~9 % oversize; body width -> 2.03 m)
+    "wheelbase_cc": 4.19,             # 165 in, the long 1-ton DRW chassis-cab wheelbase
+    "frame_length_behind_cab": 4.15,
+    "frame_top_z": 0.80,
+    "frame_hw": 0.43,
+    "dual_rear_wheels": True,
+    # used to locate the front axle, then removed with the other wheel parts (DRW wheels replace them)
+    "front_tire_objects": ["Object_87", "Object_88", "Object_93", "Object_94", "Object_95", "Object_96"],
+    # grille oval (chrome ring + script, blue fill; the fill object also holds the tailgate oval),
+    # tailgate oval, fender model/series badges, door engine badges (red + white lettering)
+    "debadge_objects": ["Object_53", "Object_38", "Object_58", "Object_46", "Object_47", "Object_68",
+                        "Object_97"],
+    # licence plates + front plate bracket, roof antenna (pokes into the cabover), front wheels/hubs/discs
+    "remove_objects": ["Object_3", "Object_4", "Object_5", "Object_36", "Object_80", "Object_6",
+                       "Object_37", "Object_72", "Object_74", "Object_76", "Object_77"],
+    # extra non-paint faces removed by region: [[x0, y0, z0], [x1, y1, z1]] in the normalised model
+    # frame before the mount shift; x is compared as |x| so one box covers both sides
+    "badge_boxes": [[[0.90, 1.36, 1.07], [1.10, 1.61, 1.17]],     # fender badge backing
+                    [[0.90, 1.00, 0.80], [1.10, 1.29, 0.875]],    # door badge backing
+                    [[0.00, 2.718, 0.947], [0.097, 2.76, 1.029]]], # oval mount boss on the grille face
+    "paint_materials": ["carpaint"],
+    "material_map": {"black": "trim", "chrome": "chrome", "mirror": "chrome", "clearglass": "glass_clear",
+                     "windowglass": "glass_light", "orangeglass": "lamp_amber", "redglass": "lamp_red_lens",
+                     "interior": "interior", "material_15": "alloy", "brakedisk": "steel", "tire": "tire",
+                     "white": "plastic_white", "material": "trim"},
+    "wheel_material_map": {"hdw_tire": "tire", "hdw_rim": "alloy", "hdw_hub": "chrome"},
+}
+
+
+def check_glb(path):
+    """Fail unless path is a binary glTF 2.0 file whose header length matches the file and whose first
+    chunk is JSON. Returns the parsed JSON chunk."""
+    import json
+    import struct
+
+    from lib.common import PipelineError
+    size = path.stat().st_size
+    with open(path, "rb") as f:
+        head = f.read(20)
+        if len(head) < 20:
+            raise PipelineError(f"{path}: too short for a .glb")
+        magic, ver, length = struct.unpack("<4sII", head[:12])
+        clen, ctype = struct.unpack("<I4s", head[12:20])
+        if magic != b"glTF" or ver != 2 or length != size or ctype != b"JSON":
+            raise PipelineError(f"{path}: not a valid glTF 2.0 binary (magic {magic!r}, version {ver}, "
+                                f"header length {length} vs file {size}, chunk {ctype!r})")
+        try:
+            meta = json.loads(f.read(clen))
+        except ValueError as e:
+            raise PipelineError(f"{path}: glTF JSON chunk does not parse: {e}") from e
+    if meta.get("asset", {}).get("version") != "2.0":
+        raise PipelineError(f"{path}: glTF asset version {meta.get('asset', {}).get('version')!r}, need 2.0")
+    return meta
+
+
+def _base_name(mat):
+    head, dot, tail = mat.name.rpartition(".")
+    return head if dot and tail.isdigit() and len(tail) == 3 else mat.name
+
+
+def _remove_object(ob):
+    me = ob.data
+    bpy.data.objects.remove(ob)
+    if me is not None and me.users == 0:
+        bpy.data.meshes.remove(me)
+
+
+def build_hd_chassis_reference(spec, mats, collection):
+    """HD regular-cab chassis cab with dual rear wheels from the two downloaded references.
+    Returns TruckInfo (cab_chassis contract, variant frame: origin = frame top, 7 cm behind the cab)."""
+    from mathutils import Matrix
+
+    from lib.common import PipelineError, repo_path
+    s = dict(HD_CHASSIS_DEFAULTS)
+    s.update({k: v for k, v in spec.items() if not k.startswith("_")})
+    if s.get("type", "cab_chassis") != "cab_chassis":
+        raise PipelineError("hd_reference truck: type must be cab_chassis")
+    path, wpath = repo_path(s["model"]), repo_path(s["wheels"])
+    for p_, what in ((path, "regular-cab pickup .glb"),
+                     (wpath, "DRW wheel .blend; build it with scripts/extract_hd_wheels.py")):
+        if not p_.is_file():
+            raise PipelineError(f"HD chassis reference missing: {p_} ({what}). See README 'Credits'; "
+                                f"or use --set truck.source=procedural.")
+    check_glb(path)
+    wb = s["wheelbase_cc"]
+    frame_top, fw = s["frame_top_z"], s["frame_hw"]
+    objs = _import_reference(path, collection)
+
+    # ---- normalise: centre x, front toward +Y (model front is at its -Y end), metres, ground z = 0
+    vs = _verts_world(objs)
+    lo = Vector(tuple(min(v[i] for v in vs) for i in range(3)))
+    hi = Vector(tuple(max(v[i] for v in vs) for i in range(3)))
+    k = s["overall_length"] / (hi.y - lo.y)
+    M = (Matrix.Scale(k, 4) @ Matrix.Rotation(math.pi, 4, "Z")
+         @ Matrix.Translation((-(lo.x + hi.x) / 2, -(lo.y + hi.y) / 2, -lo.z)))
+    for ob in objs:
+        ob.data.transform(M)
+        ob.data.update()
+    byname = {o.name: o for o in objs}
+    missing = [n for n in s["front_tire_objects"] + s["debadge_objects"] + s["remove_objects"] if n not in byname]
+    if missing:
+        raise PipelineError(f"hd_reference: objects {missing} not in {path.name} (a different download?)")
+    ft = _verts_world([byname[n] for n in s["front_tire_objects"]])
+    y_fa = (min(v.y for v in ft) + max(v.y for v in ft)) / 2
+
+    # ---- debadge, plates, antenna, original wheels
+    gone = set(s["debadge_objects"] + s["remove_objects"] + s["front_tire_objects"])
+    for n in gone:
+        _remove_object(byname[n])
+    objs = [byname[n] for n in byname if n not in gone]
+    removed = 0
+    paint = set(s["paint_materials"])
+    for bx in s["badge_boxes"]:
+        lo_b, hi_b = Vector(bx[0]), Vector(bx[1])
+        for ob in objs:
+            removed += _delete_faces(ob, lambda m, c: (m is None or _base_name(m) not in paint)
+                                     and all(lo_b[i] <= (abs(c[i]) if i == 0 else c[i]) <= hi_b[i] for i in range(3)))
+
+    # ---- measure: roof, cab back (rays over the bed rails)
+    bpy.context.view_layer.update()
+    scene = bpy.context.scene
+    dg = bpy.context.evaluated_depsgraph_get()
+    tops = [_ray(scene, dg, (0.0, y / 20, 5.0), (0, 0, -1)) for y in range(-2, 25)]
+    tops = [h.z for h in tops if h is not None]
+    if not tops:
+        raise PipelineError("hd_reference: cab roof not found")
+    roof = max(tops)
+    hits = []
+    for ix in range(-7, 8):
+        for iz in range(0, 7):
+            h = _ray(scene, dg, (ix * 0.1, -1.5, 1.30 + (roof - 0.10 - 1.30) * iz / 6), (0, 1, 0), dist=3.0)
+            if h is not None and h.y > -1.0:
+                hits.append(h.y)
+    if not hits:
+        raise PipelineError("hd_reference: cab back not found")
+    cab_back = min(hits)
+    y_cut = cab_back - 0.012
+    faces = 0
+    keep = []
+    for ob in objs:
+        faces += _cut_behind(ob, y_cut)
+        if len(ob.data.polygons):
+            keep.append(ob)
+        else:
+            _remove_object(ob)
+    objs = keep
+
+    # ---- DRW wheel assemblies (front singles, rear duals) from the extracted .blend
+    with bpy.data.libraries.load(str(wpath), link=False) as (src, dst):
+        dst.objects = [n for n in src.objects if n.startswith("hdw_")]
+    wheels = [o for o in dst.objects if o is not None]
+    if sorted(o.get("axle", "") for o in wheels) != ["front", "front", "rear", "rear"]:
+        raise PipelineError(f"{wpath.name}: expected 2 front + 2 rear wheel assemblies")
+    y_ra = y_fa - wb
+    for ob in wheels:
+        collection.objects.link(ob)
+        yy = y_fa if ob["axle"] == "front" else y_ra
+        ob.data.transform(Matrix.Translation((ob["center_x"], yy, ob["tire_diameter"] / 2)))
+        ob.matrix_world.identity()
+        for slot in ob.material_slots:
+            slot.material = mats[s["wheel_material_map"][_base_name(slot.material)]]
+        for pl in ob.data.polygons:
+            pl.use_smooth = True
+    front = next(o for o in wheels if o["axle"] == "front")
+    rear = next(o for o in wheels if o["axle"] == "rear")
+    tire_r = front["tire_diameter"] / 2
+    track = 2 * abs(front["center_x"])
+    rear_track = abs(rear["center_x"]) + rear["width"] / 2
+
+    y_end = y_cut - s["frame_length_behind_cab"]
+    chassis = _rear_chassis(mats, collection, 0.0, y_cut, y_end, frame_top, fw, y_ra, tire_r,
+                            abs(rear["center_x"]), name="pv_hd_chassis")
+
+    # ---- materials: shared body paint, render library for everything else
+    unmapped = set()
+    for ob in objs:
+        for slot in ob.material_slots:
+            m = slot.material
+            if m is None:
+                continue
+            b = _base_name(m)
+            if b in paint:
+                slot.material = mats["paint"]
+            elif b in s["material_map"]:
+                slot.material = mats[s["material_map"][b]]
+            else:
+                unmapped.add(b)
+    if unmapped:
+        raise PipelineError(f"hd_reference: unmapped model materials {sorted(unmapped)}")
+    objs += wheels + [chassis]
+
+    # ---- shift: origin = frame top, centred, 7 cm behind the cab back
     oy = cab_back - 0.07
     for ob in objs:
-        ob.data.transform(Matrix.Translation((-xc, -oy, 0.0)))
+        ob.data.transform(Matrix.Translation((0.0, -oy, 0.0)))
         ob.location.z -= frame_top
     mats.ground_z = -frame_top
-    _reference_materials(s, mats, objs)
     info = TruckInfo(
-        type="cab_chassis", source="reference", mount_local=[0.0, 0.0, frame_top], ground_z=-frame_top,
-        roof_z=roof - frame_top, cab_back_y=0.07, front_y=max(v.y for v in _verts_world(objs)),
-        front_axle_y=y_fa - oy, rear_axle_y=y_new - oy, wheelbase=wb, body_hw=1.02,
+        type="cab_chassis", source="hd_reference", mount_local=[0.0, 0.0, frame_top], ground_z=-frame_top,
+        roof_z=roof - frame_top, cab_back_y=0.07, front_y=max(v.y for v in _verts_world(objs)) - 0.0,
+        front_axle_y=y_fa - oy, rear_axle_y=y_ra - oy, wheelbase=wb, body_hw=1.01,
         track=track, tire_radius=tire_r, spec=s,
-        frame_top_z=0.0, frame_hw=fw, frame_end_y=y_end - oy, rear_track=rear_track, axle_z=z_ax - frame_top,
+        frame_top_z=0.0, frame_hw=fw, frame_end_y=y_end - oy, rear_track=rear_track, axle_z=tire_r - frame_top,
     )
     info["objects"] = objs
-    print(f"[reference truck] {path.name} cab_chassis: scale {k:.5f}, {faces} faces after cut at cab back "
-          f"(+{0.012:.3f}); roof {roof:.3f} above ground, frame top {frame_top:.2f}, wheelbase {wb:.2f}, "
-          f"rear track (outer tyre) {rear_track:.3f}, dual {dual}")
+    print(f"[hd chassis] {path.name}: scale {k:.5f}, {faces} faces after cut, removed {len(gone)} objects + "
+          f"{removed} badge faces; roof {roof:.3f}, cab back {cab_back:.3f}, front axle {y_fa:.3f} "
+          f"(front axle to cab back {y_fa - cab_back:.3f}), wheelbase {wb:.2f}, tyre r {tire_r:.3f}, "
+          f"front track {track:.3f}, rear outer half width {rear_track:.3f}")
     return info

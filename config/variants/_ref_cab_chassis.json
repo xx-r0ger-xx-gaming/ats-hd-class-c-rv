@@ -1,9 +1,22 @@
 {
   "_comment": "Reference only (leading underscore = skipped by --all): the cab_chassis base a Class C variant builds on. Origin = frame top, 7 cm behind the cab back.",
   "name": "_ref_cab_chassis",
-  "title": "Cab-chassis base (dual rear wheels)",
-  "camper": {"module": "bare"},
-  "truck": {"type": "cab_chassis", "cab": "regular", "wheelbase_cc": 4.3, "frame_length_behind_cab": 3.4, "dual_rear_wheels": true},
-  "paint": "config/paint.json#materials.shell_paint",
-  "views": ["rear34", "side", "front34"]
+  "title": "HD chassis cab base (dual rear wheels)",
+  "camper": {
+    "module": "bare"
+  },
+  "truck": {
+    "type": "cab_chassis",
+    "source": "hd_reference",
+    "cab": "regular",
+    "wheelbase_cc": 4.19,
+    "frame_length_behind_cab": 4.15,
+    "dual_rear_wheels": true
+  },
+  "paint": "config/paint.json#materials.hd_cab_paint",
+  "views": [
+    "rear34",
+    "side",
+    "front34"
+  ]
 }

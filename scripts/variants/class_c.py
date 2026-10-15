@@ -297,10 +297,12 @@ def build(cfg, collection, mats):
     y_ra = ti["rear_axle_y"]
     z_ax = ti["ground_z"] + ti["tire_radius"]
     rb = 0.16
+    dz = zc - 1.22                               # cabover features were laid out for cabover_bottom_z 1.22
+    ry = yb + 3.98                               # rear-end features were laid out for rear_y -3.98
     objs = []
 
     # ---------------- lower body (beside / behind the cab), rear wheel arches cut out
-    side_lo = [-3.2, -2.4, -1.6, -0.8, -0.2]
+    side_lo = [-3.2 + ry, -2.4, -1.6, -0.8, -0.2]
     lo_rings = [(zs, 0.03), (zs + 0.03, 0.0), (zs + 0.14, 0.0), (zc, 0.0)]
     rings = []
     for z, ins in lo_rings:
@@ -321,13 +323,13 @@ def build(cfg, collection, mats):
 
     # ---------------- upper body + cabover nose (z-stacked plan rings)
     # (z, front y, inset all-round (roof edge), inset front-only (cabover underside edge))
-    zw0, zw1 = 1.60, 2.00                         # wraparound window band
+    zw0, zw1 = 1.60 + dz, 2.00 + dz               # wraparound window band
     nose = [(zc, 1.42, 0, 0.07), (zc + 0.03, 1.56, 0, 0.025), (zc + 0.10, 1.67, 0, 0.0),
-            (1.45, 1.75, 0, 0), (zw0 - 0.03, 1.785, 0, 0), (zw0, 1.79, 0, 0), (1.80, 1.78, 0, 0),
-            (zw1, 1.73, 0, 0), (zw1 + 0.03, 1.72, 0, 0), (2.15, 1.66, 0, 0), (2.27, 1.56, 0, 0),
+            (1.45 + dz, 1.75, 0, 0), (zw0 - 0.03, 1.785, 0, 0), (zw0, 1.79, 0, 0), (1.80 + dz, 1.78, 0, 0),
+            (zw1, 1.73, 0, 0), (zw1 + 0.03, 1.72, 0, 0), (2.15 + dz, 1.66, 0, 0), (2.27 + dz, 1.56, 0, 0),
             (zr - 0.12, 1.43, 0.012, 0), (zr - 0.06, 1.28, 0.035, 0), (zr, 1.08, 0.08, 0)]
     yw = 0.98                                     # rear edge of the wraparound glass on the sides
-    side_up = [-3.2, -2.4, -1.6, -0.8, 0.0, 0.05, 0.5, yw - 0.04, yw]
+    side_up = [-3.2 + ry, -2.4, -1.6, -0.8, 0.0, 0.05, 0.5, yw - 0.04, yw]
     rings = [plan_ring(z, hw - ia, yb + ia, yf, rb, 0.52, side_up, inset_front=inf)
              for z, yf, ia, inf in nose]
     upper = Part(P + "_body_upper", mats)
@@ -356,20 +358,20 @@ def build(cfg, collection, mats):
         pl = Plane("x", s, hw)
         door = s == ds
         # cabover side window just behind the wraparound glass
-        rv_window(d, pl, 0.28, 0.74, 1.64, 1.96, r=0.06, divider=False)
+        rv_window(d, pl, 0.28, 0.74, 1.64 + dz, 1.96 + dz, r=0.06, divider=False)
         if door:
             rv_window(d, pl, -2.62, -1.42, 0.98, 1.72)          # lounge window over the arch
-            rv_window(d, pl, -3.72, -3.12, 1.06, 1.66)          # rear bedroom window
+            rv_window(d, pl, -3.72 + ry, -3.12 + ry, 1.06, 1.66)  # rear bedroom window
             # entry door with window + grab handle + folding step
             entry_door(d, pl, s, -0.98, -0.30, zs + 0.17, 1.86, (-0.86, -0.42, 1.18, 1.66, 0.08))
             slab(d, pl, rounded_rect(-0.24, -0.20, 0.55, 1.35, 0.018, 2), 0.0, 0.045, "chrome")
-            for u0, u1, v1 in ((-1.72, -1.10, 0.48), (-3.84, -3.06, 0.48)):
+            for u0, u1, v1 in ((-1.50, -1.08, 0.48), (-3.84 + ry, -3.06 + ry, 0.48)):
                 hatch(d, pl, u0, u1, zs + 0.18, v1)
         else:
             rv_window(d, pl, -2.40, -1.40, 1.00, 1.66)
-            rv_window(d, pl, -3.66, -3.10, 1.06, 1.60)
+            rv_window(d, pl, -3.66 + ry, -3.10 + ry, 1.06, 1.60)
             rv_window(d, pl, -0.70, -0.20, 1.16, 1.62, divider=False)
-            for u0, u1, v1 in ((-1.62, -0.92, 0.48), (-0.72, -0.12, 0.48), (-3.86, -3.00, 0.48)):
+            for u0, u1, v1 in ((-1.50, -0.92, 0.48), (-0.72, -0.12, 0.48), (-3.86 + ry, -3.00 + ry, 0.48)):
                 hatch(d, pl, u0, u1, zs + 0.18, v1)
         # wheel arch trim
         arc_band_x(d, y_ra, z_ax, 0.575, 0.62, 12, 168, s * (hw - 0.01), s * (hw + 0.018), "trim", seg=16)
@@ -377,7 +379,7 @@ def build(cfg, collection, mats):
         slab(d, pl, rounded_rect(-0.10, 0.0, zs + 0.24, zs + 0.29, 0.015, 1), 0.0, 0.02, "lamp_amber")
         slab(d, pl, rounded_rect(yb + 0.18, yb + 0.28, zs + 0.24, zs + 0.29, 0.015, 1), 0.0, 0.02,
              "lamp_red_lens")
-        slab(d, pl, rounded_rect(0.85, 0.95, 1.40, 1.45, 0.015, 1), 0.0, 0.02, "lamp_amber")
+        slab(d, pl, rounded_rect(0.85, 0.95, 1.40 + dz, 1.45 + dz, 0.015, 1), 0.0, 0.02, "lamp_amber")
         slab(d, pl, [(yb + 0.20, zr - 0.15), (0.9, zr - 0.15), (0.9, zr - 0.13), (yb + 0.20, zr - 0.13)],
              -0.003, 0.016, "trim")
         # original graphics: tapered swept blades, dark + grey, rising toward the front
@@ -391,11 +393,11 @@ def build(cfg, collection, mats):
 
     # cabover front: amber clearance lamps above the windshield band, lower nose marker
     for x in (-0.48, -0.24, 0.0, 0.24, 0.48):
-        y = nose_y(2.16)
-        box(d, (x - 0.05, y - 0.03, 2.145), (x + 0.05, y + 0.012, 2.175), "lamp_amber", bev=0.008, seg=1)
+        y = nose_y(2.16 + dz)
+        box(d, (x - 0.05, y - 0.03, 2.145 + dz), (x + 0.05, y + 0.012, 2.175 + dz), "lamp_amber", bev=0.008, seg=1)
     for x in (-0.95, 0.95):
-        y = nose_y(1.45)
-        box(d, (x - 0.06, y - 0.05, 1.43), (x + 0.06, y + 0.008, 1.47), "lamp_amber", bev=0.008, seg=1)
+        y = nose_y(1.45 + dz)
+        box(d, (x - 0.06, y - 0.05, 1.43 + dz), (x + 0.06, y + 0.008, 1.47 + dz), "lamp_amber", bev=0.008, seg=1)
 
     # rear face
     pr = Plane("y", -1, yb)
@@ -434,10 +436,10 @@ def build(cfg, collection, mats):
         for k in range(5):
             yy = y0 + 0.16 + k * 0.16
             box(d, (-0.39, yy, zr + 0.04), (0.39, yy + 0.05, zr + 0.16), "trim")
-    for y in (-3.30, -0.70):
+    for y in (-3.30 + ry, -0.70):
         box(d, (-0.20, y, zr - 0.01), (0.20, y + 0.40, zr + 0.06), "plastic_white", bev=0.02, seg=1)
         box(d, (-0.17, y + 0.03, zr + 0.06), (0.17, y + 0.37, zr + 0.12), "trim_gloss", bev=0.02, seg=1)
-    box(d, (0.35, -3.0, zr - 0.01), (0.85, -2.5, zr + 0.08), "glass_flush", bev=0.03, seg=2)
+    box(d, (0.35, -3.0 + ry, zr - 0.01), (0.85, -2.5 + ry, zr + 0.08), "glass_flush", bev=0.03, seg=2)
     xa = ds * (hw + 0.085)
     cylinder_y(d, xa, zr - 0.25, 0.075, -3.02, -0.14, "cc_awning", seg=16)
     box(d, (xa - 0.06, -3.04, zr - 0.38), (xa + 0.06, -0.12, zr - 0.30), "cc_awning")

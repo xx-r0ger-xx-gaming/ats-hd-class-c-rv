@@ -1,6 +1,6 @@
-# ATS Road Trip — Class C Motorhome on a Super Duty-Style Chassis Cab
+# ATS Road Trip — Class C Motorhome on a Heavy-Duty Chassis Cab
 
-A compact Class C motorhome (cabover berth, rear habitation body, dual rear wheels) built on a two-door, badge-free, Super Duty-style chassis cab. Target game: American Truck Simulator - Road Trip: Ford. Split out of [ats-f150-camper](https://github.com/xx-r0ger-xx-gaming/ats-f150-camper) on October 15, 2026, because a Class C eventually needs its own chassis rather than a truck-bed accessory slot.
+A compact Class C motorhome (cabover berth, rear habitation body, dual rear wheels) built on a two-door, badge-free, heavy-duty (one-ton-style) regular-cab chassis cab. Target game: American Truck Simulator - Road Trip: Ford. Split on October 15, 2026 out of the bed-accessories repo ([ats-f150-camper](https://github.com/xx-r0ger-xx-gaming/ats-f150-camper)), because a Class C needs its own chassis rather than a truck-bed accessory slot.
 
 Start with [CLAUDE.md](CLAUDE.md), then [the roadmap](docs/roadmap.md). Open gates: [docs/compatibility.md](docs/compatibility.md).
 
@@ -8,28 +8,35 @@ Start with [CLAUDE.md](CLAUDE.md), then [the roadmap](docs/roadmap.md). Open gat
 
 **Preview renders only.** Nothing here is exported, converted, packaged or tested in game, and a render is not proof that a mod works. Current state:
 
-- **Stand-in:** the current preview uses a crew-cab F-150 model as a stand-in until the Super Duty reference is in. It is not the final chassis.
-- The coach is original, render-only geometry (`scripts/variants/class_c.py`).
-- The base vehicle in the renders is a **reference cab-chassis**: the downloaded crew-cab pickup model (see Credits) cut 12 mm behind the cab, cut openings capped, plus a procedural C-channel frame, crossmembers, rear axle, springs and dual rear wheels copied from the model's own wheel. It is a render construct, **not a real chassis cab** and not a measured one. `wheelbase_cc` is 5.3 m so the rear overhang matches the procedural regular-cab layout.
-- **Open question: 2-door regular cab.** The intended look is a short 2-door cab, but Road Trip only ships the 4-door crew cab (cabin `pckup4d_55.ford.f150_23.cabin`, chassis `4d55_awd`). We cannot ship a cut-down or modified SCS model. In game this means either keeping the crew cab (long, but uses the installed vehicle) or building our own original cab and chassis (a much larger scope). Undecided; see the roadmap.
+- The coach is original, render-only geometry (`scripts/variants/class_c.py`), about 7.3 m from front bumper to rear wall.
+- The base vehicle in the renders is a **reference HD chassis cab** (`truck.source: hd_reference`): a downloaded 1999–2007-generation heavy-duty regular-cab pickup (see Credits) scaled to real size, cut 12 mm behind the cab, cut openings capped, fully debadged (grille oval and its mount, fender and door badges, plates and plate bracket removed; the bed with its tailgate badges and decals is cut away), repainted to match the coach, plus dual-rear-wheel and front wheel assemblies from a derived chassis-cab model and a procedural frame, crossmembers, rear axle, leaf springs, fuel tank and exhaust. It is a render construct, **not a measured chassis cab**.
+- **Wheelbase 4.19 m (165 in)**, the long one-ton DRW chassis-cab wheelbase in the public body-builder layout data; cab back to rear axle about 2.2 m, rear overhang about 2.1 m behind the axle (about 51 % of the wheelbase). The cabover underside is 0.12 m above the cab roof and the coach front wall sits 2 cm behind the cab back.
+- **In game the plan is unchanged:** original geometry built from public body-builder dimensions, not this reference model (see the roadmap).
 - **Eevee glass artifacts:** the `surface` (Eevee) profile shows the coach windows and interiors much brighter than Cycles and has glass sorting artifacts. Judge glass and windows in Cycles (`surface-photo` or `gaming`).
 
 ## Tools
 
-This repo does not carry the multi-gigabyte `tools/` folder (portable Blender 3.6.23, the HDRI, the reference truck). Any repo path starting with `tools/` resolves, in order, to:
+This repo does not carry the multi-gigabyte `tools/` folder (portable Blender 3.6.23, the HDRI, the reference models). Any repo path starting with `tools/` resolves, in order, to:
 
 1. `ATS_TOOLS_DIR` environment variable (absolute, or relative to this repo's root);
 2. `"tools_dir"` in `config/tools.local.json` (gitignored; copy `config/tools.example.json`);
 3. `./tools` in this repo, if it exists (a real folder or a directory junction);
-4. default: the sibling camper repo's tools, `../ats-f150-camper/tools`.
+4. default: the sibling repo's tools, `../ats-f150-camper/tools`.
 
-With both repos cloned side by side under one folder, nothing needs configuring. To use a junction instead (Windows, no admin rights needed):
+### Reference models for preview renders
 
-```powershell
-cmd /c mklink /J tools ..\ats-f150-camper\tools
+Download both models from Sketchfab as glTF binary (.glb) into `tools/reference-hd-chassis/` (gitignored) and rename them:
+
+- the regular-cab pickup (first credit below) → `hd_regular_cab_pickup.glb`
+- the chassis-cab box truck (second credit) → `hd_drw_box_truck.glb`
+
+Then extract the wheel assemblies once (imports the 2.35M-face box truck in its own Blender process and writes `tools/reference-hd-chassis/hd_drw_wheels.blend`, about 100 MB):
+
+```bash
+$B --background --factory-startup --python-exit-code 1 --python scripts/extract_hd_wheels.py
 ```
 
-Populate the tools with the camper repo's `scripts/fetch_tools.ps1` (Blender, HDRI; sha256-checked) and download the reference truck by hand as described there (`docs/gaming-pc-setup.md`, "Reference truck for preview renders").
+Both .glb files are checked as valid glTF 2.0 before import. The object names the debadge step removes are those of these exact downloads (`HD_CHASSIS_DEFAULTS` in `scripts/lib/proxy_truck.py`); a different download fails loudly.
 
 ## Rendering
 
@@ -41,43 +48,46 @@ for v in rear34 side front34; do
      --variant class_c --profile surface-photo --views $v --no-sheet
 done
 # (drop --no-sheet on the last run to rebuild renders/variants/contact_sheet.png)
-# bare base vehicles
-$B ... -- --variant _ref_cab_chassis --set truck.source=reference --suffix _reference
+# bare base vehicle
+$B ... -- --variant _ref_cab_chassis
 ```
 
-Outputs go to `renders/variants/<name>_<view>.png` (gitignored), run evidence to `logs/render_variants-<timestamp>.json` (settings, camera, sun, seconds, output sha256). `--set key.path=value` overrides config keys (e.g. `--set truck.source=procedural` renders on the procedural regular-cab chassis), `--suffix` renames the outputs. Profiles and views are in `config/render.json`: `surface` (Eevee 1280x720, 32 samples), `surface-photo` (Cycles CPU, 192 adaptive samples, ~150-160 s per view on the Surface Pro 8), `gaming` (Cycles GPU 1080p).
+Outputs go to `renders/variants/<name>_<view>.png` (gitignored), run evidence to `logs/render_variants-<timestamp>.json` (settings, camera, sun, seconds, output sha256). `--set key.path=value` overrides config keys (e.g. `--set truck.source=procedural` renders on the procedural regular-cab chassis, the fallback when the reference models are not present), `--suffix` renames the outputs. Profiles and views are in `config/render.json`: `surface` (Eevee 1280x720, 32 samples), `surface-photo` (Cycles CPU, 192 adaptive samples, ~3-4 min per view on the Surface Pro 8 with the reference chassis), `gaming` (Cycles GPU 1080p).
 
 ## Layout
 
 ```text
-config/variants/class_c.json         Coach parameters, truck spec (cab_chassis, reference, wheelbase_cc 5.3, duals)
-config/variants/_ref_cab_chassis.json Bare cab-chassis reference render (skipped by --all)
-config/render.json                   HDRI, road/ground, render profiles, cameras (same look as the camper repo)
-config/paint.json                    Shared silver body paint (copied from the camper repo's config/v1.json)
-scripts/render_variants.py           Render runner (truck + coach + environment, one view or several)
-scripts/variants/class_c.py          Coach builder (lower body, cabover, windows, door, awning, ladder, bikes)
-scripts/lib/proxy_truck.py           Procedural pickup / cab-chassis and the reference-model cut (cab_chassis)
-scripts/lib/{meshkit,materials,environment,contact_sheet,common}.py  Shared libraries (duplicated from the camper repo)
+config/variants/class_c.json          Coach parameters, truck spec (cab_chassis, hd_reference, wheelbase_cc 4.19, duals)
+config/variants/_ref_cab_chassis.json Bare chassis-cab reference render (skipped by --all)
+config/render.json                    HDRI, road/ground, render profiles, cameras
+config/paint.json                     Cab paint (solid white matched to the coach)
+scripts/render_variants.py            Render runner (truck + coach + environment, one view or several)
+scripts/extract_hd_wheels.py          One-off: DRW wheel assemblies from the box-truck reference to a small .blend
+scripts/variants/class_c.py           Coach builder (lower body, cabover, windows, door, awning, ladder, bikes)
+scripts/lib/proxy_truck.py            Procedural pickup / cab-chassis and the HD reference chassis cab (hd_reference)
+scripts/lib/{meshkit,materials,environment,contact_sheet,common}.py  Shared libraries (duplicated from the bed-accessories repo)
 ```
 
-The shared libraries are deliberate copies of the camper repo's; they may drift. Coordinate changes by hand when one repo's render look changes.
+The shared libraries are deliberate copies; they may drift. Coordinate changes by hand when the render look changes.
 
 ### Cab-chassis frame
 
-Origin = top of the frame rails, centred, 7 cm behind the cab back (`cab_back_y` = 0.07); +Y forward, +Z up, +X right, metres. The frame runs to `frame_end_y`, the road is at `ground_z` (about -0.80). The coach sits on the rails (z >= 0) from y = 0 rearward and extends forward over the cab (cab roof at `roof_z`, about 1.14 above the frame). Truck keys: `type: cab_chassis`, `source: reference|procedural`, `wheelbase_cc`, `frame_length_behind_cab`, `frame_top_z` (0.80), `frame_hw` (0.56), `dual_rear_wheels`, `cab` (procedural only; the reference model is always a crew cab).
+Origin = top of the frame rails, centred, 7 cm behind the cab back (`cab_back_y` = 0.07); +Y forward, +Z up, +X right, metres. The frame runs to `frame_end_y`, the road is at `ground_z` (-0.80). The coach sits on the rails (z >= 0) from y = 0 rearward and extends forward over the cab (cab roof at `roof_z`, about 1.14 above the frame). Truck keys: `type: cab_chassis`, `source: hd_reference|procedural`, `wheelbase_cc`, `frame_length_behind_cab`, `frame_top_z` (0.80), `frame_hw`, `dual_rear_wheels`, `cab` (procedural only). Coach keys that follow the chassis: `rear_y` (-4.20), `cabover_bottom_z` (1.26), `roof_z` (2.52).
 
-`class_c` puts the entry door and awning on the passenger/curb side (`camper.door_side: 1`) and mirrors its `front34` camera to the right-front so the hero view shows the door side. On the reference cab-chassis the cabover underside is 0.115 m above the cab roof and the coach front wall 2 cm behind the cab back.
+`class_c` puts the entry door and awning on the passenger/curb side (`camper.door_side: 1`) and mirrors its `front34` camera to the right-front so the hero view shows the door side.
 
 ## Asset policy
 
-Create original geometry and textures. Do not commit, upload, or redistribute proprietary SCS assets, extracted vehicle models, interiors, textures, sounds, or third-party Road Trip/F-150 assets without explicit redistribution permission. The reference truck is a render stand-in only. If supported integration requires shipping protected assets (including a cut-down SCS cab), stop that approach and record the limitation.
+Create original geometry and textures. Do not commit, upload, or redistribute proprietary SCS assets, extracted vehicle models, interiors, textures, sounds, or third-party vehicle models without explicit redistribution permission. The reference models are render-only. If supported integration requires shipping protected assets (including a cut-down SCS cab), stop that approach and record the limitation.
 
 ## Disclaimer
 
-Unofficial fan-made mod. Not affiliated with, sponsored by, or endorsed by Ford Motor Company or SCS Software. Ford, F-150 and Super Duty are trademarks of Ford Motor Company; American Truck Simulator is a trademark of SCS Software. Names are used only to identify the vehicle this mod fits. No Ford or SCS logos, models, or game assets are included.
+Unofficial fan-made mod. Not affiliated with, sponsored by, or endorsed by Ford Motor Company or SCS Software. Ford is a trademark of Ford Motor Company; American Truck Simulator is a trademark of SCS Software. Names are used only to identify the game content this mod targets. No manufacturer or SCS logos, models, or game assets are included.
 
 ## Credits
 
-Preview renders use a third-party truck model as a stand-in base vehicle, cut behind the cab into a reference cab-chassis. It is used only for those preview renders: it is downloaded by hand into the tools folder (gitignored), never committed, never exported, and not included in the mod or any release package.
+Preview renders use two third-party models for the base vehicle. They are used only for those preview renders: downloaded by hand into the tools folder (gitignored), never committed, never exported, and not included in the mod or any release package.
 
-"2023 Ford F150 Lihtning Platinum" (https://skfb.ly/pFtDT) by tonielpro520 is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/). Modified: badges removed, repainted, camper added.
+"F350 Superduty Highpoly" (https://sketchfab.com/3d-models/f350-superduty-highpoly-294a98fe36664803a0e495fbea7ac4d1) by Luquita is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/). Modified: badges removed, repainted, cut to chassis cab, camper added. Not included in the mod.
+
+"F350 Superduty Box Truck" (https://sketchfab.com/3d-models/f350-superduty-box-truck-18ba47d4608843629b296bd57e1921bc) by nero.77 is licensed under Creative Commons Attribution-ShareAlike (http://creativecommons.org/licenses/by-sa/4.0/). Modified: badges removed, repainted, cut to chassis cab, camper added. Not included in the mod. Its front and dual rear wheel assemblies (textures dropped, render materials applied) are used directly, so the preview renders are adaptations of it and are shared under CC BY-SA 4.0.

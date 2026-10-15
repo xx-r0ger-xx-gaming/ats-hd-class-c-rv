@@ -1,21 +1,21 @@
 {
-  "_comment": "Render-only paint shared by the Class C variant configs. Keep in sync with the camper repo by hand if its silver changes.",
+  "_comment": "Render-only cab paint used by the Class C variant configs.",
   "materials": {
-    "shell_paint": {
-      "_comment": "Shared render body paint copied from ats-f150-camper config/v1.json materials.shell_paint ('Iconic Silver'-like metallic silver, approximation, not a factory colour code). Used via \"paint\": \"config/paint.json#materials.shell_paint\" for the cab-chassis and colour-matched trim. Render-only.",
+    "hd_cab_paint": {
+      "_comment": "Render-only cab paint for the HD chassis cab: solid white matched to the coach fiberglass (scripts/variants/class_c.py cc_fiber), not a factory colour code.",
       "base_color": [
-        0.4,
-        0.41,
-        0.42,
+        0.8,
+        0.805,
+        0.79,
         1.0
       ],
-      "metallic": 0.9,
-      "roughness": 0.36,
+      "metallic": 0.0,
+      "roughness": 0.24,
       "clearcoat": 1.0,
-      "clearcoat_roughness": 0.03,
-      "flake": 0.6,
-      "dirt": 0.15,
-      "render_roughness": 0.17,
+      "clearcoat_roughness": 0.05,
+      "flake": 0.0,
+      "dirt": 0.2,
+      "render_roughness": 0.2,
       "role": "body_paint"
     }
   }

@@ -1,28 +1,40 @@
 {
   "_comment": "Compact Class C motorhome on the regular-cab cab-chassis proxy (render-only). Coach geometry in scripts/variants/class_c.py; all dimensions metres in the cab_chassis variant frame (origin = frame top, 7 cm behind the cab back).",
   "name": "class_c",
-  "title": "Class C motorhome on a Super Duty-style chassis cab (F-150 crew-cab stand-in in preview)",
+  "title": "Class C motorhome on a heavy-duty regular-cab chassis cab with dual rear wheels (render-only reference cab)",
   "camper": {
     "module": "class_c",
     "half_width": 1.25,
-    "rear_y": -3.98,
-    "skirt_z": -0.30,
-    "roof_z": 2.48,
-    "cabover_bottom_z": 1.22,
+    "rear_y": -4.2,
+    "skirt_z": -0.3,
+    "roof_z": 2.52,
+    "cabover_bottom_z": 1.26,
     "door_side": 1,
     "bikes": 2
   },
-  "_truck_comment": "source reference = the downloaded crew-cab model cut behind the cab (render-only); its crew cab sets the cab length, so 'cab' only applies to the procedural fallback. wheelbase_cc 5.3 keeps the rear overhang close to the procedural regular-cab layout (4.5).",
+  "_truck_comment": "source hd_reference = the downloaded 1999-2007-generation heavy-duty regular-cab pickup cut behind the cab, with DRW wheels from the derived chassis-cab model (render-only, see README Credits). wheelbase_cc 4.19 m = 165 in, the long 1-ton DRW chassis-cab wheelbase (cab back to rear axle ~2.2 m); with rear_y -4.20 the body is ~7.3 m bumper to rear wall. Fallbacks: --set truck.source=reference (F-150 crew-cab stand-in, use wheelbase_cc 5.3) or truck.source=procedural.",
   "truck": {
     "type": "cab_chassis",
-    "source": "reference",
+    "source": "hd_reference",
     "cab": "regular",
-    "wheelbase_cc": 5.3,
-    "frame_length_behind_cab": 3.6,
+    "wheelbase_cc": 4.19,
+    "frame_length_behind_cab": 4.15,
     "dual_rear_wheels": true
   },
-  "paint": "config/paint.json#materials.shell_paint",
-  "views": ["rear34", "side", "front34"],
+  "paint": "config/paint.json#materials.hd_cab_paint",
+  "views": [
+    "rear34",
+    "side",
+    "front34"
+  ],
   "_cameras_comment": "door_side 1 = entry door + awning on the passenger/curb side (US). front34 is mirrored to the right-front so the hero view shows the door side; side and rear34 stay on the left (graphics, bike rack).",
-  "cameras": {"front34": {"azimuth_deg": 40, "sun_azimuth_deg": 70, "height": 1.6, "target_height": 1.5, "margin": 0.05}}
+  "cameras": {
+    "front34": {
+      "azimuth_deg": 40,
+      "sun_azimuth_deg": 70,
+      "height": 1.6,
+      "target_height": 1.5,
+      "margin": 0.05
+    }
+  }
 }
