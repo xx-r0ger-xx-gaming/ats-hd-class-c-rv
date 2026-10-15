@@ -11,7 +11,7 @@ All items start unverified. This records intent, not completed implementation. S
 
 ## Target vehicle (Rob, 2026-10-15)
 
-- **Chassis:** a 2-door regular-cab heavy-duty (one-ton-style, F-350/F-450 class) chassis cab with dual rear wheels, badge-free.
+- **Chassis:** a 2-door regular-cab heavy-duty (one-ton to 1.5-ton class) chassis cab with dual rear wheels, badge-free.
 - **Renders:** done with the reference HD chassis cab above (credited in the README, kept in the tools folder, never committed or packaged).
 - **Game:** still ORIGINAL geometry, built from Ford's public Body Builders Layout Book dimensions (wheelbase, cab-to-axle, frame height and width, cab envelope). The render reference is not used for the game model. A lookalike, not a replica: alter the grille and lights, no Ford badges, names or logos, no SCS or third-party model data.
 - **Open gate (gaming PC):** can a mod add a new Road Trip *car* (`def/vehicle/car/...`, dealer `vehicle : .car` entries), or would this have to be a mod *truck* def (`def/vehicle/truck/...`), losing Road Trip car features (car dealer, car interior/camera behaviour, Road Trip-specific systems)? Verify by extracting the Road Trip defs and checking whether the car dealer, vehicle lists and car physics accept a third-party car unit, then load a tiny original test car; compare with an existing community car or truck mod. Record the answer here and in docs/compatibility.md.

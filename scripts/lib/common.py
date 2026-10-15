@@ -32,15 +32,11 @@ def make_parser(description):
     return argparse.ArgumentParser(description=description)
 
 
-DEFAULT_TOOLS_DIR = "../ats-f150-camper/tools"   # sibling camper repo; nothing is copied here
-
-
 def tools_root():
     """Directory that repo paths starting with 'tools/' resolve to.
 
-    Order: env ATS_TOOLS_DIR, then "tools_dir" in config/tools.local.json (gitignored), then a local
-    tools/ folder or directory junction in this repo, then the sibling repo's tools/ (DEFAULT_TOOLS_DIR).
-    Relative values resolve from this repo's root.
+    Order: env ATS_TOOLS_DIR, then "tools_dir" in config/tools.local.json (gitignored), then this
+    repo's own ./tools (default). Relative values resolve from this repo's root.
     """
     env = os.environ.get("ATS_TOOLS_DIR")
     if env:
@@ -51,9 +47,7 @@ def tools_root():
             td = json.load(f).get("tools_dir")
         if td:
             return (REPO_ROOT / td).resolve()
-    if (REPO_ROOT / "tools").exists():
-        return REPO_ROOT / "tools"
-    return (REPO_ROOT / DEFAULT_TOOLS_DIR).resolve()
+    return REPO_ROOT / "tools"
 
 
 def repo_path(p):

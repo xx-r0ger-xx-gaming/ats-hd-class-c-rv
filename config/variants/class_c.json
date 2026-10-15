@@ -12,7 +12,7 @@
     "door_side": 1,
     "bikes": 2
   },
-  "_truck_comment": "source hd_reference = the downloaded 1999-2007-generation heavy-duty regular-cab pickup cut behind the cab, with DRW wheels from the derived chassis-cab model (render-only, see README Credits). wheelbase_cc 4.19 m = 165 in, the long 1-ton DRW chassis-cab wheelbase (cab back to rear axle ~2.2 m); with rear_y -4.20 the body is ~7.3 m bumper to rear wall. Fallbacks: --set truck.source=reference (F-150 crew-cab stand-in, use wheelbase_cc 5.3) or truck.source=procedural.",
+  "_truck_comment": "source hd_reference = the downloaded 1999-2007-generation heavy-duty regular-cab pickup cut behind the cab, with DRW wheels from the derived chassis-cab model (render-only, see README Credits). wheelbase_cc 4.19 m = 165 in, the long 1-ton DRW chassis-cab wheelbase (cab back to rear axle ~2.2 m); with rear_y -4.20 the body is ~7.3 m bumper to rear wall. Fallback: --set truck.source=procedural.",
   "truck": {
     "type": "cab_chassis",
     "source": "hd_reference",

@@ -31,8 +31,8 @@ def hdri_path(hdri_cfg):
     p = repo_path(hdri_cfg["file"])
     if not p.is_file():
         raise PipelineError(
-            f"HDRI missing: {p}\n  tools/ resolves via ATS_TOOLS_DIR, config/tools.local.json, ./tools or "
-            f"../ats-f150-camper/tools (README 'Tools'); run the camper repo's scripts/fetch_tools.ps1 "
+            f"HDRI missing: {p}\n  tools/ is ./tools unless ATS_TOOLS_DIR or config/tools.local.json say otherwise "
+            f"(README 'Tools'); run scripts/fetch_tools.ps1 "
             f"(downloads {Path(hdri_cfg['file']).name} from Poly Haven, CC0, sha256-checked)")
     return p
 

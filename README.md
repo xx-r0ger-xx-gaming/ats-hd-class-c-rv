@@ -1,6 +1,6 @@
 # ATS Road Trip — Class C Motorhome on a Heavy-Duty Chassis Cab
 
-A compact Class C motorhome (cabover berth, rear habitation body, dual rear wheels) built on a two-door, badge-free, heavy-duty (one-ton-style) regular-cab chassis cab. Target game: American Truck Simulator - Road Trip: Ford. Split on October 15, 2026 out of the bed-accessories repo ([ats-f150-camper](https://github.com/xx-r0ger-xx-gaming/ats-f150-camper)), because a Class C needs its own chassis rather than a truck-bed accessory slot.
+A compact Class C motorhome (cabover berth, rear habitation body, dual rear wheels) built on a two-door, badge-free, heavy-duty (one-ton-style) regular-cab chassis cab. Target game: American Truck Simulator - Road Trip: Ford. Split on October 15, 2026 out of the bed-accessories repo ([ats-f150-bed-accessories](https://github.com/xx-r0ger-xx-gaming/ats-f150-bed-accessories)), because a Class C needs its own chassis rather than a truck-bed accessory slot.
 
 Start with [CLAUDE.md](CLAUDE.md), then [the roadmap](docs/roadmap.md). Open gates: [docs/compatibility.md](docs/compatibility.md).
 
@@ -16,12 +16,13 @@ Start with [CLAUDE.md](CLAUDE.md), then [the roadmap](docs/roadmap.md). Open gat
 
 ## Tools
 
-This repo does not carry the multi-gigabyte `tools/` folder (portable Blender 3.6.23, the HDRI, the reference models). Any repo path starting with `tools/` resolves, in order, to:
+`tools/` (gitignored, about 1.5 GB) holds this repo's own toolchain and reference models; nothing is shared with another checkout. Populate it with:
 
-1. `ATS_TOOLS_DIR` environment variable (absolute, or relative to this repo's root);
-2. `"tools_dir"` in `config/tools.local.json` (gitignored; copy `config/tools.example.json`);
-3. `./tools` in this repo, if it exists (a real folder or a directory junction);
-4. default: the sibling repo's tools, `../ats-f150-camper/tools`.
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/fetch_tools.ps1   # Blender 3.6.23 portable, SCS Blender Tools, HDRI (sha256-checked)
+```
+
+then add the reference models below. Paths starting with `tools/` resolve to `./tools`, unless the `ATS_TOOLS_DIR` environment variable or `"tools_dir"` in `config/tools.local.json` (gitignored; copy `config/tools.example.json`) points elsewhere.
 
 ### Reference models for preview renders
 
@@ -41,7 +42,7 @@ Both .glb files are checked as valid glTF 2.0 before import. The object names th
 ## Rendering
 
 ```bash
-B=../ats-f150-camper/tools/blender-3.6.23-windows-x64/blender.exe
+B=tools/blender-3.6.23-windows-x64/blender.exe
 # Cycles CPU, one view per Blender process (the Surface Pro has stopped on low memory with several)
 for v in rear34 side front34; do
   $B --background --factory-startup --python-exit-code 1 --python scripts/render_variants.py -- \
@@ -62,6 +63,7 @@ config/variants/_ref_cab_chassis.json Bare chassis-cab reference render (skipped
 config/render.json                    HDRI, road/ground, render profiles, cameras
 config/paint.json                     Cab paint (solid white matched to the coach)
 scripts/render_variants.py            Render runner (truck + coach + environment, one view or several)
+scripts/fetch_tools.ps1               Toolchain download into ./tools (Blender, SCS add-on, HDRI; sha256-checked)
 scripts/extract_hd_wheels.py          One-off: DRW wheel assemblies from the box-truck reference to a small .blend
 scripts/variants/class_c.py           Coach builder (lower body, cabover, windows, door, awning, ladder, bikes)
 scripts/lib/proxy_truck.py            Procedural pickup / cab-chassis and the HD reference chassis cab (hd_reference)

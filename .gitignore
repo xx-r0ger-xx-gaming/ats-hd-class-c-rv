@@ -6,7 +6,7 @@ local-reference/
 # Machine-specific configuration
 config/tools.local.json
 
-# Tool binaries, HDRI, reference truck (or a directory junction to the camper repo's tools/)
+# Tool binaries, HDRI, reference models, extracted wheel .blend
 tools/
 
 # Generated output

@@ -1,6 +1,6 @@
 # Class C compatibility gates
 
-Shared Road Trip feasibility facts (def paths, unit names, paint mechanism, toolchain pins) live in the bed-accessories repo's [docs/compatibility.md](https://github.com/xx-r0ger-xx-gaming/ats-f150-camper/blob/main/docs/compatibility.md). This file holds only the Class C gates. Do not duplicate the shared facts here; link to them.
+Shared Road Trip feasibility facts (def paths, unit names, paint mechanism, toolchain pins) live in the bed-accessories repo's [docs/compatibility.md](https://github.com/xx-r0ger-xx-gaming/ats-f150-bed-accessories/blob/main/docs/compatibility.md). This file holds only the Class C gates. Do not duplicate the shared facts here; link to them.
 
 ## Open gates
 

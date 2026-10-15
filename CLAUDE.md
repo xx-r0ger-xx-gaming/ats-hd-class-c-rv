@@ -20,7 +20,7 @@ Read README.md and docs/roadmap.md before implementation. The task is a Class C 
 
 ## Tools
 
-`tools/` is not in this repo. Paths starting with `tools/` resolve through `scripts/lib/common.py` `tools_root()`: `ATS_TOOLS_DIR`, then `config/tools.local.json` `tools_dir`, then a local `./tools` (folder or junction), then `../ats-f150-camper/tools`. Never commit `tools/`, `renders/`, `logs/` or `local-reference/`.
+`tools/` (gitignored) is this repo's own toolchain folder: portable Blender 3.6.23, the SCS add-on zip and the HDRI (`scripts/fetch_tools.ps1`), plus `reference-hd-chassis/` (README 'Tools'). Paths starting with `tools/` resolve through `scripts/lib/common.py` `tools_root()`: `ATS_TOOLS_DIR`, then `config/tools.local.json` `tools_dir`, else `./tools`. This repo shares nothing on disk with any other repo. Never commit `tools/`, `renders/`, `logs/` or `local-reference/`.
 
 ## Automation rules
 
