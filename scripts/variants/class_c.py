@@ -297,7 +297,7 @@ def build(cfg, collection, mats):
     y_ra = ti["rear_axle_y"]
     r_rt = ti.get("rear_tire_radius", ti["tire_radius"])
     z_ax = ti["ground_z"] + r_rt
-    r_arch = r_rt + 0.105                        # ~10 cm tyre-to-arch clearance (was a fixed 0.58)
+    r_arch = r_rt + 0.09                         # ~9 cm tyre-to-arch clearance (was a fixed 0.58)
     rb = 0.16
     dz = zc - 1.22                               # cabover features were laid out for cabover_bottom_z 1.22
     ry = yb + 3.98                               # rear-end features were laid out for rear_y -3.98
