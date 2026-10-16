@@ -1109,12 +1109,15 @@ HD_CHASSIS_DEFAULTS = {
     "frame_hw": 0.43,
     "dual_rear_wheels": True,
     # wheels reshaped from the extracted 245/75R17-class assemblies (0.796 m on 17 in, rear pair touching):
-    # 225/70R19.5-class DRW tyres on 19.5 in wheels front and rear; duals 0.275 m centre to centre
+    # fronts 0.80 m (245/75R17 class) on 17 in wheels, leaving a natural gap in the cab fender;
+    # rear duals 0.86 m (245/75R19.5 class) on 19.5 in wheels, 0.275 m centre to centre
     # (~3.5 cm sidewall gap), dual pair centre 0.957 m off the centreline so the outer sidewall sits
-    # ~3 cm inside the 2.50 m coach (overall dual width ~2.43 m; the extracted pair was at 0.877)
-    "wheel_diameter_in": 19.5,
-    "front_tire_diameter": 0.82,
-    "rear_tire_diameter": 0.82,
+    # ~3 cm inside the 2.50 m coach (overall dual width ~2.43 m; the extracted pair was at 0.877).
+    # Every tyre sits on the road and the frame top stays at frame_top_z, so the frame stays level.
+    "wheel_diameter_in": 19.5,           # rear
+    "front_wheel_diameter_in": 17.0,
+    "front_tire_diameter": 0.80,
+    "rear_tire_diameter": 0.86,
     "rear_dual_spacing": 0.275,
     "rear_dual_center_x": 0.957,
     # used to locate the front axle, then removed with the other wheel parts (DRW wheels replace them)
@@ -1341,7 +1344,8 @@ def build_hd_chassis_reference(spec, mats, collection):
             if s.get("rear_dual_center_x"):
                 ob["center_x"] = ob["side"] * s["rear_dual_center_x"]
         elif ob["axle"] == "front" and s.get("front_tire_diameter"):
-            front_old = _reshape_wheel(ob, s["front_tire_diameter"], s["wheel_diameter_in"])
+            front_old = _reshape_wheel(ob, s["front_tire_diameter"],
+                                       s.get("front_wheel_diameter_in", s["wheel_diameter_in"]))
     for ob in wheels:
         collection.objects.link(ob)
         yy = y_fa if ob["axle"] == "front" else y_ra
@@ -1397,10 +1401,12 @@ def build_hd_chassis_reference(spec, mats, collection):
     info["rear_axle_z"] = rear_r - frame_top
     info["objects"] = objs
     if front_old:
-        print(f"[hd chassis] fronts: tyre dia {front_old[0]:.3f} -> {2 * tire_r:.3f}, {s['wheel_diameter_in']} in wheels")
+        print(f"[hd chassis] fronts: tyre dia {front_old[0]:.3f} -> {2 * tire_r:.3f}, "
+              f"{s.get('front_wheel_diameter_in', s['wheel_diameter_in'])} in wheels")
     if rear_old:
         print(f"[hd chassis] rear duals: tyre dia {rear_old[0]:.3f} -> {2 * rear_r:.3f}, pair width "
-              f"{rear_old[1]:.3f} -> {rear['width']:.3f} (spacing {s['rear_dual_spacing']:.3f} c-c), pair centre "
+              f"{rear_old[1]:.3f} -> {rear['width']:.3f}, {s['wheel_diameter_in']} in wheels "
+              f"(spacing {s['rear_dual_spacing']:.3f} c-c), pair centre "
               f"{rear_old[2]:.3f} -> {abs(rear['center_x']):.3f}, outer face {rear_old[2] + rear_old[1] / 2:.3f} -> "
               f"{rear_track:.3f}")
     print(f"[hd chassis] {path.name}: scale {k:.5f}, {faces} faces after cut, removed {len(gone)} objects + "

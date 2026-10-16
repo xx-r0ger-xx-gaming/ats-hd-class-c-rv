@@ -283,7 +283,8 @@ def arch_c(g):
     ti = g.ti
     y_ra = ti["rear_axle_y"]
     r = ti.get("rear_tire_radius", ti["tire_radius"])
-    return y_ra - 0.58, y_ra + 0.58, ti["ground_z"] + 2 * r + 0.11, 0.16
+    # opening 1.20 m long, top 8 cm above the tyre, 0.12 corners: >= ~7 cm clear of the tyre outline
+    return y_ra - 0.60, y_ra + 0.60, ti["ground_z"] + 2 * r + 0.08, 0.12
 
 
 ARCH_TRIM_W = 0.045                     # coach-space width of the squared arch trim
