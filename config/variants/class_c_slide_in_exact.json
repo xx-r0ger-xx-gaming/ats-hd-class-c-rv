@@ -1,0 +1,41 @@
+{
+  "_comment": "Class C option A, slide-in style 'exact': the hard-edged slide-in camper scaled onto the HD chassis cab (x 1.157 to a 2.50 m width, y/z x1.4 anchored at the cabover floor 1.26 and front wall 0.03) with a length plug so the rear wall is at rear_y (~7.3 m overall). Wing walls float above the duals on a narrow basement, rear entry door, corner jacks. Builder: scripts/variants/slide_in_style.py.",
+  "name": "class_c_slide_in_exact",
+  "title": "Class C, slide-in style (exact) on a heavy-duty regular-cab chassis cab (render-only reference cab)",
+  "camper": {
+    "module": "class_c",
+    "style": "slide_in_exact",
+    "half_width": 1.25,
+    "rear_y": -4.2,
+    "cabover_bottom_z": 1.26,
+    "front_wall_y": 0.03,
+    "scale": 1.4,
+    "gelcoat": [
+      0.8,
+      0.805,
+      0.79,
+      1.0
+    ],
+    "stripe": [
+      0.055,
+      0.058,
+      0.062,
+      1.0
+    ]
+  },
+  "truck": {
+    "type": "cab_chassis",
+    "source": "hd_reference",
+    "cab": "regular",
+    "wheelbase_cc": 4.19,
+    "frame_length_behind_cab": 4.15,
+    "dual_rear_wheels": true
+  },
+  "paint": "config/paint.json#materials.hd_cab_paint",
+  "views": [
+    "rear34",
+    "side",
+    "front34"
+  ],
+  "cameras": {}
+}

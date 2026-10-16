@@ -4,6 +4,7 @@
   "title": "Class C motorhome on a heavy-duty regular-cab chassis cab with dual rear wheels (render-only reference cab)",
   "camper": {
     "module": "class_c",
+    "style": "rounded",
     "half_width": 1.25,
     "rear_y": -4.2,
     "skirt_z": -0.3,
@@ -36,5 +37,6 @@
       "target_height": 1.5,
       "margin": 0.05
     }
-  }
+  },
+  "_style_comment": "camper.style: \"rounded\" (this bulbous coach), \"slide_in_exact\" or \"slide_in_styled\" (hard-edged slide-in style coaches; see class_c_slide_in_exact.json / class_c_slide_in_styled.json)."
 }

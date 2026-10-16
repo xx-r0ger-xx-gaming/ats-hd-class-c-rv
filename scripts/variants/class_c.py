@@ -6,6 +6,9 @@ Coach = two plan-ring lofts stacked in Z (cab_chassis variant frame, origin = fr
               rounded nose; the wraparound front window is a band of faces on that loft.
 Everything else (windows, door, hatches, graphics, lamps, roof units, awning, ladder, bumper, bike
 rack and bikes) is low-poly overlay geometry a few mm proud of the shell. No logos or lettering.
+
+camper.style: "rounded" (this coach, default), "slide_in_exact" or "slide_in_styled" (hard-edged
+slide-in style coaches, scripts/variants/slide_in_style.py).
 """
 import math
 
@@ -284,6 +287,10 @@ def torus_y(part, cx, cy, cz, R, r, key, seg=20, mseg=6):
 
 def build(cfg, collection, mats):
     c = cfg["camper"]
+    style = c.get("style", "rounded")
+    if style != "rounded":                       # hard-edged slide-in style coaches
+        from variants import slide_in_style
+        return slide_in_style.build(cfg, collection, mats)
     ti = cfg["truck_info"]
     _materials(mats)
     POCKETS.clear()
