@@ -163,6 +163,7 @@ class Geo:
         self.sl0 = (self.yn, self.zc + 0.54)
         self.sl1 = (self.yn - 0.42, self.ztop)
         self.ti = ti
+        self.sp = sp
         # coach space
         self.HW, self.YR, self.YF = c.get("half_width", 1.25), rear_y, sp.yf
         self.ZS, self.ZT = sp.z(self.z0), sp.z(self.ztop)
@@ -283,6 +284,36 @@ def arch_c(g):
     y_ra = ti["rear_axle_y"]
     r = ti.get("rear_tire_radius", ti["tire_radius"])
     return y_ra - 0.58, y_ra + 0.58, ti["ground_z"] + 2 * r + 0.11, 0.16
+
+
+ARCH_TRIM_W = 0.045                     # coach-space width of the squared arch trim
+
+
+def arch_gaps_n(g):
+    """Design-space y spans a lower-body strip must skip: each rear arch opening, with the strip ends
+    tucked half way under the arch trim legs (empty on the exact style, which has no arch)."""
+    if g.exact:
+        return []
+    y0, y1, _, _ = arch_c(g)
+    h = ARCH_TRIM_W / 2
+    return [(g.sp.iy(y0 - h), g.sp.iy(y1 + h))]
+
+
+def split_span(a, b, gaps):
+    """[a, b] minus the gap intervals, as a list of (u0, u1) pieces."""
+    out = [(a, b)]
+    for g0, g1 in gaps:
+        nxt = []
+        for u0, u1 in out:
+            if g1 <= u0 or g0 >= u1:
+                nxt.append((u0, u1))
+                continue
+            if g0 > u0:
+                nxt.append((u0, g0))
+            if g1 < u1:
+                nxt.append((g1, u1))
+        out = nxt
+    return out
 
 
 # ------------------------------------------------------------------ body
@@ -458,8 +489,8 @@ def side_details(g, p):
     for sgn in (-1, 1):
         s = g.side(sgn)
         zb = g.z0 + 0.01
-        plate(p, s, [(g.yr + 0.07, zb), (g.yb - 0.02, zb), (g.yb - 0.02, zb + 0.03), (g.yr + 0.07, zb + 0.03)],
-              -0.004, 0.01, "sl_frame")
+        for u0, u1 in split_span(g.yr + 0.07, g.yb - 0.02, arch_gaps_n(g)):     # skirt trim, cut at the arch
+            plate(p, s, [(u0, zb), (u1, zb), (u1, zb + 0.03), (u0, zb + 0.03)], -0.004, 0.01, "sl_frame")
         plate(p, s, [(g.yr + 0.07, zt - 0.085), (g.yn - 0.42, zt - 0.085), (g.yn - 0.42, zt - 0.06),
                      (g.yr + 0.07, zt - 0.06)], -0.004, 0.012, "sl_frame")
         plate(p, s, rounded_rect(1.16, 1.22, zc + 0.20, zc + 0.24, 0.01, 2), 0.0, 0.018, "lamp_amber")
@@ -584,7 +615,7 @@ def styled_parts(g, q):
     windows_trim(q, coach)
     # squared wheel-arch trim
     y0, y1, za, r = arch_c(g)
-    w = 0.045
+    w = ARCH_TRIM_W
     inner = u_outline(y0, y1, ZS, za, r)
     outer = u_outline(y0 - w, y1 + w, ZS, za + w, r + w)
     for sgn in (-1, 1):
